@@ -2,6 +2,7 @@
 #define GC_H
 
 #include "bloat.h"
+#include "vm.h"
 
 void gc_init(VM* vm);
 void gc_collect(VM* vm);
