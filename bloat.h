@@ -8,9 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Forward declarations
-typedef struct Chunk Chunk;
-typedef struct VM VM;
+typedef struct Chunk chunk;
+typedef struct VM vm;
 
 #define MAX_VARS 256
 #define MAX_STACK 1024
