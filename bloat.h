@@ -46,14 +46,4 @@ typedef struct {
     int count;
 } Environment;
 
-typedef struct {
-    uint8_t* code;
-    Value* constants;
-    int constant_count;
-    Environment* env;
-    Object* objects;
-    size_t bytes_allocated;
-    size_t next_gc;
-} VM;
-
 #endif
