@@ -7,7 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "vm.h"
+#include "chunk.h"
 #define MAX_VARS 256
 #define MAX_STACK 1024
 #define INITIAL_GC_THRESHOLD 1024
