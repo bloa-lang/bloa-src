@@ -2,8 +2,6 @@
 #include "compiler.h"
 #include "vm.h"
 
-static VM vm;
-
 static InterpretResult run() {
     #define READ_BYTE() (*vm.ip++)
     #define READ_CONSTANT() (vm.chunk->constants[READ_BYTE()])
