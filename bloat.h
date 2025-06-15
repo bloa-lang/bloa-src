@@ -8,9 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Chunk chunk;
-typedef struct VM vm;
-
 #define MAX_VARS 256
 #define MAX_STACK 1024
 #define INITIAL_GC_THRESHOLD 1024
