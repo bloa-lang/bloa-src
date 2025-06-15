@@ -91,22 +91,22 @@ InterpretResult interpret(VM* vm, const char* source) {
     return result;
 }
 
-static void push(VM* vm, Value value) {
+void push(VM* vm, Value value) {
     *vm->stack_top = value;
     vm->stack_top++;
 }
 
-static Value pop(VM* vm) {
+Value pop(VM* vm) {
     vm->stack_top--;
     return *vm->stack_top;
 }
 
-static bool is_falsey(Value value) {
+bool is_falsey(Value value) {
     return (value.type == TYPE_NIL) || 
            (value.type == TYPE_BOOL && !value.data.bool_val);
 }
 
-static bool values_equal(Value a, Value b) {
+bool values_equal(Value a, Value b) {
     if (a.type != b.type) return false;
     switch (a.type) {
         case TYPE_BOOL:   return a.data.bool_val == b.data.bool_val;
