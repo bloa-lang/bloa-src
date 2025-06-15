@@ -4,6 +4,7 @@
 #include "compiler.h"
 #include "vm.h"
 #include "gc.h"
+#include "chunk.h"
 
 static void repl(VM* vm) {
     char line[1024];
