@@ -1,4 +1,5 @@
 #include "bloat.h"
+#include "chunk.h"
 #include "gc.h"
 
 static void mark_object(VM* vm, Object* object) {
