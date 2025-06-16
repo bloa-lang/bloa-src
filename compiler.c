@@ -1,4 +1,5 @@
 #include "bloat.h"
+#include "chunk.h"
 #include "compiler.h"
 
 void init_chunk(Chunk* chunk) {
