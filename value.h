@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+#ifndef VALUE_TYPE_DEFINED
+#define VALUE_TYPE_DEFINED
 typedef enum {
     TYPE_NIL,
     TYPE_BOOL,
@@ -10,7 +12,10 @@ typedef enum {
     TYPE_FLOAT,
     TYPE_STRING
 } ValueType;
+#endif
 
+#ifndef VALUE_DEFINED
+#define VALUE_DEFINED
 typedef struct {
     ValueType type;
     union {
@@ -20,6 +25,7 @@ typedef struct {
         const char* str_val;
     } data;
 } Value;
+#endif
 
 #define NIL_VAL ((Value){ TYPE_NIL, { .int_val = 0 } })
 #define BOOL_VAL(v) ((Value){ TYPE_BOOL, { .bool_val = v } })
@@ -40,5 +46,6 @@ typedef struct {
 #define AS_STRING(v) ((v).data.str_val)
 
 void print_value(Value value);
+void* reallocate(void* pointer, size_t oldSize, size_t newSize);
 
 #endif
