@@ -2,6 +2,10 @@
 #define CHUNK_H
 
 #include "bloat.h"
+#include "value.h"
+#include "memory.h"
+
+#define MAX_CONSTANTS 65536
 
 typedef struct {
     uint8_t* code;
