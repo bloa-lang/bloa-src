@@ -1,9 +1,12 @@
 #ifndef VM_H
 #define VM_H
 
-#include <stdint.h>
-#include "value.h"
+#include "bloa.h"
 #include "chunk.h"
+#include "value.h"
+
+#include <stdint.h>
+#include <stddef.h>
 
 #define STACK_MAX 256
 #define MAX_CONSTANTS 65536
