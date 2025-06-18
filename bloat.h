@@ -1,6 +1,8 @@
 #ifndef BLOAT_H
 #define BLOAT_H
 
+#include "value.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -11,24 +13,6 @@
 #define MAX_VARS 256
 #define MAX_STACK 1024
 #define INITIAL_GC_THRESHOLD 1024
-
-typedef enum {
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_STRING,
-    TYPE_BOOL,
-    TYPE_NIL
-} ValueType;
-
-typedef struct {
-    ValueType type;
-    union {
-        int64_t int_val;
-        double float_val;
-        char* str_val;
-        bool bool_val;
-    };
-} Value;
 
 typedef struct Object {
     struct Object* next;
