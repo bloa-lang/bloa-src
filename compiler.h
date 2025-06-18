@@ -1,6 +1,7 @@
 #ifndef COMPILER_H
 #define COMPILER_H
 
+#include "chunk.h"
 #include "parser.h"
 
 typedef enum {
