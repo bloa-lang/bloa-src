@@ -11,8 +11,6 @@
 #define STACK_MAX 256
 #define MAX_CONSTANTS 65536
 
-typedef struct Object Object;
-
 typedef struct {
     Chunk* chunk;
     uint8_t* ip;
