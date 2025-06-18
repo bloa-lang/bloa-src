@@ -1,7 +1,7 @@
 #ifndef VM_H
 #define VM_H
 
-#include "bloa.h"
+#include "bloat.h"
 #include "chunk.h"
 #include "value.h"
 
