@@ -1,5 +1,6 @@
 #include "bloat.h"
 #include "chunk.h"
+#include "vm.h"
 
 #include <stdint.h>
 #include <stdlib.h>
