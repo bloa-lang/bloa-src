@@ -1,4 +1,4 @@
-#!/workspaces/bloa-src/bloa/.venv/bin/python
+#!/workspaces/bloa-src/bloa/.venv/bin/python3.12
 import sys
 from bloa.cli import main
 if __name__ == '__main__':
