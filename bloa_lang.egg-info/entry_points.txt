@@ -1,0 +1,2 @@
+[console_scripts]
+bloa = bloa.cli:main
