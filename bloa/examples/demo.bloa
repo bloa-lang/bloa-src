@@ -1,0 +1,16 @@
+import math
+
+say "Demo BLOA"
+
+function greet(name):
+    say "Hello, {name}!"
+    return "greeted " + name
+
+res = greet("Azlib")
+say res
+
+say "2+3 = {math.add(2,3)}"
+
+nums = [1, 2, 3]
+say nums
+say "length = {len(nums)}"

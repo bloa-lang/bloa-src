@@ -1,0 +1,13 @@
+say "Welcome to BLOA!"
+
+ask "What is your name?" -> user
+say "{user}, nice to meet you!"
+
+age = 21
+if age >= 18:
+    say "You are an adult."
+else:
+    say "You are a minor."
+
+repeat 3 times:
+    say "loop {count}"
