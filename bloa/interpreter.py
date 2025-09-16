@@ -1,54 +1,55 @@
-# interpreter.py
 import ast
 import os
 import sys
+from typing import Any, List, Optional, Tuple, Dict
 
-class ParseError(Exception): pass
+class ParseError(Exception):
+    pass
+
 class ReturnSignal(Exception):
-    def __init__(self, value):
+    def __init__(self, value: Any):
         self.value = value
 
 class Node:
     pass
 
-# AST node classes
 class Say(Node):
-    def __init__(self, expr): self.expr = expr
+    def __init__(self, expr: str): self.expr = expr
 
 class Ask(Node):
-    def __init__(self, prompt, var): self.prompt = prompt; self.var = var
+    def __init__(self, prompt: str, var: str): self.prompt = prompt; self.var = var
 
 class Assign(Node):
-    def __init__(self, name, expr): self.name = name; self.expr = expr
+    def __init__(self, name: str, expr: str): self.name = name; self.expr = expr
 
 class If(Node):
-    def __init__(self, cond, then_block, else_block): self.cond=cond; self.then_block=then_block; self.else_block=else_block
+    def __init__(self, cond: str, then_block: List[Node], else_block: List[Node]):
+        self.cond = cond; self.then_block = then_block; self.else_block = else_block
 
 class Repeat(Node):
-    def __init__(self, times_expr, block): self.times_expr=times_expr; self.block=block
+    def __init__(self, times_expr: str, block: List[Node]):
+        self.times_expr = times_expr; self.block = block
 
 class FunctionDef(Node):
-    def __init__(self, name, params, block): self.name=name; self.params=params; self.block=block
+    def __init__(self, name: str, params: List[str], block: List[Node]):
+        self.name = name; self.params = params; self.block = block
 
 class FunctionCall(Node):
-    def __init__(self, name, args): self.name=name; self.args=args
+    def __init__(self, name: str, args: List[str]): self.name = name; self.args = args
 
 class Return(Node):
-    def __init__(self, expr): self.expr=expr
+    def __init__(self, expr: Optional[str]): self.expr = expr
 
 class Import(Node):
-    def __init__(self, name): self.name=name
+    def __init__(self, name: str): self.name = name
 
 class ExprStmt(Node):
-    def __init__(self, expr): self.expr = expr
+    def __init__(self, expr: str): self.expr = expr
 
-# --- simple lexer/parser based on indentation ---
-def split_lines(code):
-    # preserve \n lines, normalize to LF
+def split_lines(code: str) -> List[str]:
     return code.replace("\r\n", "\n").replace("\r", "\n").split("\n")
 
-def indent_level(line):
-    # count leading spaces; treat tab as 4 spaces
+def indent_level(line: str) -> int:
     count = 0
     for ch in line:
         if ch == ' ': count += 1
@@ -56,288 +57,232 @@ def indent_level(line):
         else: break
     return count
 
-def parse_block(lines, start_idx=0, base_indent=0):
+def parse_block(lines: List[str], start_idx: int = 0, base_indent: int = 0) -> Tuple[List[Node], int]:
     idx = start_idx
     nodes = []
     while idx < len(lines):
-        raw = lines[idx]
-        if not raw.strip():
-            idx += 1; continue
-        indent = indent_level(raw)
+        raw_line = lines[idx]
+        if not raw_line.strip() or raw_line.strip().startswith("#"):
+            idx += 1
+            continue
+        indent = indent_level(raw_line)
         if indent < base_indent:
             break
         if indent > base_indent:
-            raise ParseError(f"Unexpected indent at line {idx+1}: {raw!r}")
-        line = raw.strip()
-        # comments
-        if line.startswith("#"):
-            idx += 1; continue
-
-        # say
-        if line.startswith("say "):
-            expr = line[4:].strip()
-            nodes.append(Say(expr))
-            idx += 1; continue
-
-        # ask "prompt" -> var
-        if line.startswith("ask "):
-            rest = line[4:].strip()
-            if "->" not in rest:
-                raise ParseError(f"Invalid ask syntax at line {idx+1}")
-            prompt, var = rest.split("->", 1)
-            nodes.append(Ask(prompt.strip(), var.strip()))
-            idx += 1; continue
-
-        # import
-        if line.startswith("import "):
-            name = line[len("import "):].strip()
-            nodes.append(Import(name))
-            idx += 1; continue
-
-        # if ...:
+            raise ParseError(f"Unexpected indent at line {idx + 1}: {raw_line!r}")
+        line = raw_line.strip()
+        STATEMENT_RULES = [
+            ("say ", lambda l: Say(l[4:].strip())),
+            ("ask ", lambda l: Ask(*[p.strip() for p in l[4:].strip().split("->", 1)]) if "->" in l else None),
+            ("import ", lambda l: Import(l[len("import "):].strip())),
+            ("return ", lambda l: Return(l[len("return "):].strip())),
+        ]
+        matched_node = None
+        for prefix, handler in STATEMENT_RULES:
+            if line.startswith(prefix):
+                node_result = handler(line)
+                if node_result is None:
+                    raise ParseError(f"Invalid syntax at line {idx + 1}: {line!r}")
+                matched_node = node_result
+                idx += 1
+                break
+        if matched_node:
+            nodes.append(matched_node)
+            continue
         if line.startswith("if ") and line.endswith(":"):
             cond = line[3:-1].strip()
-            then_block, next_idx = parse_block(lines, idx+1, base_indent+4)
-            # check for else directly following at same indent
+            then_block, next_idx = parse_block(lines, idx + 1, base_indent + 4)
             else_block = []
-            if next_idx < len(lines):
-                nxt = lines[next_idx]
-                if indent_level(nxt) == base_indent and nxt.strip().startswith("else:"):
-                    else_block, after_else = parse_block(lines, next_idx+1, base_indent+4)
-                    idx = after_else
-                else:
-                    idx = next_idx
-            else:
-                idx = next_idx
+            if next_idx < len(lines) and indent_level(lines[next_idx]) == base_indent and lines[next_idx].strip() == "else:":
+                else_block, next_idx = parse_block(lines, next_idx + 1, base_indent + 4)
             nodes.append(If(cond, then_block, else_block))
+            idx = next_idx
             continue
-
-        # else: should be handled by if; if appears alone it's an error
-        if line.startswith("else:"):
-            # signal to caller to handle
-            break
-
-        # repeat N times:
         if line.startswith("repeat ") and line.endswith(" times:"):
             times_part = line[len("repeat "):-len(" times:")].strip()
-            block, next_idx = parse_block(lines, idx+1, base_indent+4)
+            block, next_idx = parse_block(lines, idx + 1, base_indent + 4)
             nodes.append(Repeat(times_part, block))
             idx = next_idx
             continue
-
-        # function def
         if line.startswith("function ") and line.endswith(":"):
             header = line[len("function "):-1].strip()
             if "(" not in header or not header.endswith(")"):
                 raise ParseError(f"Invalid function header at line {idx+1}")
-            name, params_raw = header.split("(",1)
+            name, params_raw = header.split("(", 1)
             name = name.strip()
             params = [p.strip() for p in params_raw[:-1].split(",") if p.strip()]
-            block, next_idx = parse_block(lines, idx+1, base_indent+4)
+            block, next_idx = parse_block(lines, idx + 1, base_indent + 4)
             nodes.append(FunctionDef(name, params, block))
             idx = next_idx
             continue
-
-        # return
-        if line.startswith("return "):
-            nodes.append(Return(line[len("return "):].strip()))
-            idx += 1; continue
-
-        # assignment?
-        if "=" in line and not line.startswith("==") and not line.startswith("if"):
-            # but avoid equality comparisons disguised, simple heuristic
+        if line == "else:":
+            raise ParseError(f"Unexpected 'else:' at line {idx + 1}")
+        if "=" in line and not (line.strip().startswith("==") or " if " in line):
             parts = line.split("=", 1)
-            left = parts[0].strip()
-            right = parts[1].strip()
-            # only treat as assign if left is a name (simple)
-            if left.replace("_","").isalnum():
+            left, right = parts[0].strip(), parts[1].strip()
+            if left.replace("_", "").isalnum():
                 nodes.append(Assign(left, right))
-                idx += 1; continue
-
-        # function call or expression
-        # detect something like name(arg1, arg2)
+                idx += 1
+                continue
         if "(" in line and line.endswith(")"):
-            name, args_raw = line.split("(",1)
+            name, args_raw = line.split("(", 1)
             name = name.strip()
-            args = [a.strip() for a in args_raw[:-1].split(",") if a.strip()]
-            nodes.append(FunctionCall(name, args))
-            idx += 1; continue
-
-        # default: treat as expression stmt
+            if name.isidentifier():
+                args = [a.strip() for a in args_raw[:-1].split(",") if a.strip()]
+                nodes.append(FunctionCall(name, args))
+                idx += 1
+                continue
         nodes.append(ExprStmt(line))
         idx += 1
-
     return nodes, idx
 
-# --- Runtime / evaluator ---
 class Environment:
-    def __init__(self, parent=None):
-        self.vars = {}
+    def __init__(self, parent: Optional['Environment'] = None):
+        self.vars: Dict[str, Any] = {}
         self.parent = parent
-
-    def get(self, name):
-        if name in self.vars: return self.vars[name]
-        if self.parent: return self.parent.get(name)
+    def get(self, name: str) -> Any:
+        if name in self.vars:
+            return self.vars[name]
+        if self.parent:
+            return self.parent.get(name)
         raise NameError(f"Name '{name}' is not defined")
-
-    def set(self, name, value):
+    def set(self, name: str, value: Any):
         self.vars[name] = value
+    def get_all_vars(self) -> Dict[str, Any]:
+        all_vars = {}
+        if self.parent:
+            all_vars.update(self.parent.get_all_vars())
+        all_vars.update(self.vars)
+        return all_vars
 
-    def has(self, name):
-        if name in self.vars: return True
-        if self.parent: return self.parent.has(name)
-        return False
+class ModuleProxy:
+    def __init__(self, env: Environment, functions: Dict):
+        self._env = env
+        self._functions = functions
+    def __getattr__(self, item: str) -> Any:
+        if item in self._functions:
+            return self._functions[item]
+        try:
+            return self._env.get(item)
+        except NameError as e:
+            raise AttributeError(str(e))
 
 class BLOAInterpreter:
-    def __init__(self, stdlib_path=None):
+    def __init__(self, stdlib_path: Optional[str] = None):
         self.global_env = Environment()
-        self.functions = {}   # name -> (params, block, env-at-definition)
+        self.functions: Dict[str, Tuple[List[str], List[Node], Environment]] = {}
+        self.loaded_modules: Dict[str, ModuleProxy] = {}
         self.stdlib_path = stdlib_path
-
-        # add builtins
-        self.global_env.set("print", lambda *a: print(*a))
-        self.global_env.set("len", lambda x: len(x))
-        # we keep raw python functions minimal
-
-    def run(self, code, filename="<string>"):
-        lines = split_lines(code)
-        ast_nodes, _ = parse_block(lines, 0, 0)
+        self.global_env.set("print", print)
+        self.global_env.set("len", len)
+        self.global_env.set("int", int)
+        self.global_env.set("str", str)
+        self.global_env.set("float", float)
+    def run(self, code: str, filename: str = "<string>"):
         try:
+            lines = split_lines(code)
+            ast_nodes, _ = parse_block(lines)
             self.execute_block(ast_nodes, self.global_env)
-        except ReturnSignal as r:
-            # top-level return ignored
+        except (ParseError, RuntimeError, NameError, TypeError) as e:
+            print(f"Error in {filename}: {e}", file=sys.stderr)
+        except ReturnSignal:
             pass
-
-    def execute_block(self, nodes, env):
+    def execute_block(self, nodes: List[Node], env: Environment):
         for node in nodes:
             self.execute(node, env)
-
-    def eval_expr(self, expr, env):
-        # expr may contain {var} formatting, try to substitute
-        if isinstance(expr, (int, float, list, dict)):
-            return expr
-        s = expr
-        # replace {var} placeholders
-        # do multiple passes to allow nested replacements
-        for _ in range(3):
-            for name in list(env.vars.keys()):
-                s = s.replace("{" + name + "}", repr(env.get(name)))
-        # try literal eval (numbers, strings, lists, dicts, tuples)
+    def eval_expr(self, expr: str, env: Environment) -> Any:
+        if not isinstance(expr, str): return expr
         try:
-            return ast.literal_eval(s)
-        except:
+            return ast.literal_eval(expr)
+        except (ValueError, SyntaxError):
             pass
-        # otherwise, attempt to eval arithmetic/boolean expressions using env vars
-        # build local dict from env chain
-        local = {}
-        cur = env
-        while cur:
-            local.update(cur.vars)
-            cur = cur.parent
-        # restrict builtins
-        allowed_builtins = {}
         try:
-            return eval(s, {"__builtins__": allowed_builtins}, local)
+            local_vars = env.get_all_vars()
+            return eval(expr, {"__builtins__": {}}, local_vars)
         except Exception as e:
-            # as fallback, if it's a bare variable name, return its value
-            n = s.strip()
-            if n and n.replace("_","").isalnum():
+            clean_expr = expr.strip()
+            if clean_expr.isidentifier():
                 try:
-                    return env.get(n)
-                except:
+                    return env.get(clean_expr)
+                except NameError:
                     pass
             raise RuntimeError(f"Failed to evaluate expression '{expr}': {e}")
-
-    def execute(self, node, env):
-        if isinstance(node, Say):
+    def execute(self, node: Node, env: Environment) -> Optional[Any]:
+        node_type = type(node)
+        if node_type is Say:
             val = self.eval_expr(node.expr, env)
-            # if val is a list/dict, pretty print
             print(val)
-        elif isinstance(node, Ask):
-            prompt = node.prompt.strip().strip('"')
-            raw = input(prompt + " ")
-            # try to parse as literal, else keep string
+        elif node_type is Ask:
+            prompt = self.eval_expr(node.prompt, env)
+            raw_input = input(str(prompt) + " ")
             try:
-                v = ast.literal_eval(raw)
-            except:
-                v = raw
-            env.set(node.var, v)
-        elif isinstance(node, Assign):
+                val = ast.literal_eval(raw_input)
+            except (ValueError, SyntaxError):
+                val = raw_input
+            env.set(node.var, val)
+        elif node_type is Assign:
             value = self.eval_expr(node.expr, env)
             env.set(node.name, value)
-        elif isinstance(node, If):
+        elif node_type is If:
             cond = self.eval_expr(node.cond, env)
             if cond:
                 self.execute_block(node.then_block, Environment(parent=env))
-            else:
-                if node.else_block:
-                    self.execute_block(node.else_block, Environment(parent=env))
-        elif isinstance(node, Repeat):
+            elif node.else_block:
+                self.execute_block(node.else_block, Environment(parent=env))
+        elif node_type is Repeat:
             times = self.eval_expr(node.times_expr, env)
-            if not isinstance(times, int):
-                raise RuntimeError("repeat times must be integer")
+            if not isinstance(times, int) or times < 0:
+                raise RuntimeError(f"repeat times must be a non-negative integer, got {times!r}")
+            loop_env = Environment(parent=env)
             for i in range(times):
-                env.set("count", i+1)
-                self.execute_block(node.block, Environment(parent=env))
-        elif isinstance(node, FunctionDef):
-            # store function with closure env
+                loop_env.set("count", i + 1)
+                self.execute_block(node.block, loop_env)
+        elif node_type is FunctionDef:
             self.functions[node.name] = (node.params, node.block, env)
-        elif isinstance(node, FunctionCall):
-            # built-in call?
-            if env.has(node.name):
-                # call python callable
+        elif node_type is FunctionCall:
+            try:
                 func = env.get(node.name)
-                args = [self.eval_expr(a, env) for a in node.args]
                 if callable(func):
+                    args = [self.eval_expr(a, env) for a in node.args]
                     return func(*args)
-            # user-defined?
+            except NameError:
+                pass
             if node.name in self.functions:
                 params, block, def_env = self.functions[node.name]
                 if len(params) != len(node.args):
-                    raise RuntimeError(f"Function {node.name} expects {len(params)} args")
+                    raise TypeError(f"Function {node.name} expects {len(params)} arguments, but got {len(node.args)}")
                 call_env = Environment(parent=def_env)
-                for p, aexpr in zip(params, node.args):
-                    call_env.set(p, self.eval_expr(aexpr, env))
+                for p, a_expr in zip(params, node.args):
+                    call_env.set(p, self.eval_expr(a_expr, env))
                 try:
                     self.execute_block(block, call_env)
                     return None
                 except ReturnSignal as r:
                     return r.value
-            else:
-                raise NameError(f"Function or name '{node.name}' not found")
-        elif isinstance(node, Return):
+            raise NameError(f"Function or name '{node.name}' not found")
+        elif node_type is Return:
             val = self.eval_expr(node.expr, env) if node.expr else None
             raise ReturnSignal(val)
-        elif isinstance(node, Import):
-            # search stdlib and load file
+        elif node_type is Import:
+            if node.name in self.loaded_modules:
+                env.set(node.name, self.loaded_modules[node.name])
+                return
             if not self.stdlib_path:
-                raise RuntimeError("No stdlib path configured")
+                raise RuntimeError("Standard library path is not configured.")
             path = os.path.join(self.stdlib_path, node.name + ".bloa")
             if not os.path.isfile(path):
-                raise RuntimeError(f"Library {node.name} not found in stdlib path")
+                raise RuntimeError(f"Library '{node.name}' not found in stdlib path: {self.stdlib_path}")
             with open(path, "r", encoding="utf-8") as f:
                 code = f.read()
-            # create a new interpreter instance to parse the lib into its own module env
+            module_interpreter = BLOAInterpreter()
             module_env = Environment(parent=self.global_env)
-            # execute lib code inside module_env
-            lines = split_lines(code)
-            ast_nodes, _ = parse_block(lines, 0, 0)
-            # run lib code. library typically defines functions and assigns
-            self.execute_block(ast_nodes, module_env)
-            # expose module as object in current env: map names to a dict-like proxy
-            module_proxy = ModuleProxy(module_env)
+            module_lines = split_lines(code)
+            module_ast, _ = parse_block(module_lines)
+            module_interpreter.execute_block(module_ast, module_env)
+            module_proxy = ModuleProxy(module_env, module_interpreter.functions)
+            self.loaded_modules[node.name] = module_proxy
             env.set(node.name, module_proxy)
-        elif isinstance(node, ExprStmt):
-            # evaluate expr for side effect
+        elif node_type is ExprStmt:
             self.eval_expr(node.expr, env)
         else:
-            raise RuntimeError("Unknown AST node: " + str(type(node)))
-
-class ModuleProxy:
-    def __init__(self, env):
-        self._env = env
-    def __getattr__(self, item):
-        try:
-            return self._env.get(item)
-        except NameError as e:
-            raise AttributeError(str(e))
+            raise RuntimeError(f"Unknown AST node type: {node_type.__name__}")
