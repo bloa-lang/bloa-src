@@ -9,7 +9,7 @@ namespace bloa {
 
 class Interpreter {
 public:
-    Interpreter(std::string stdlib_path = "");
+    Interpreter(std::string stdlib_path = "", const std::string &source = "");
     NodeList parse(const std::string &source);
     void run(const std::string &code, const std::string &filename = "<string>");
     Value eval_expr(const std::string &expr, std::shared_ptr<Environment> env);
