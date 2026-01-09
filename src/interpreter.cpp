@@ -14,7 +14,6 @@ namespace bloa {
 
 using NodePtr = std::shared_ptr<Node>;
 
-// ===== VALUE HELPERS (since methods may be missing in header) =====
 static std::string value_to_string(const Value& v) {
     if (std::holds_alternative<std::monostate>(v.v)) return "None";
     if (std::holds_alternative<int64_t>(v.v)) return std::to_string(std::get<int64_t>(v.v));
@@ -104,7 +103,7 @@ Interpreter::Interpreter(std::string stdlib_path_, const std::string& source)
       stdlib_path(std::move(stdlib_path_)),
       s(source) {
 
-    global_env->set("None", Value());
+    global_env->set("null", Value());
     global_env->set("true", Value::make_bool(true));
     global_env->set("false", Value::make_bool(false));
 
@@ -259,7 +258,7 @@ Value Interpreter::parse_expression(std::string expr, std::shared_ptr<Environmen
 
                 if (id == "true") return Value::make_bool(true);
                 if (id == "false") return Value::make_bool(false);
-                if (id == "None") return Value();
+                if (id == "null") return Value();
 
                 auto valopt = env->get(id);
                 if (!valopt.has_value()) {
