@@ -46,13 +46,18 @@ struct Value {
     }
 };
 
+struct Variable {
+    Value value;
+    std::string visibility;
+};
+
 struct Environment {
     Environment(std::shared_ptr<Environment> parent = nullptr);
     std::optional<Value> get(const std::string &name) const;
     void set(const std::string &name, Value val);
     std::shared_ptr<Environment> parent;
 private:
-    std::unordered_map<std::string, Value> vars;
+    std::unordered_map<std::string, Variable> vars;
 };
 
 } // namespace bloa

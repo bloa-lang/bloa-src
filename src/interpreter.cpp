@@ -14,7 +14,6 @@ namespace bloa {
 
 using NodePtr = std::shared_ptr<Node>;
 
-// ===== VALUE HELPERS (since methods may be missing in header) =====
 static std::string value_to_string(const Value& v) {
     if (std::holds_alternative<std::monostate>(v.v)) return "None";
     if (std::holds_alternative<int64_t>(v.v)) return std::to_string(std::get<int64_t>(v.v));
@@ -72,7 +71,6 @@ static const std::vector<Value>& as_list(const Value& v) {
     return std::get<std::vector<Value>>(v.v);
 }
 
-// ===== ENVIRONMENT =====
 Environment::Environment(std::shared_ptr<Environment> parent_)
     : parent(std::move(parent_)), vars() {}
 
@@ -84,19 +82,14 @@ std::optional<Value> Environment::get(const std::string& name) const {
 }
 
 void Environment::set(const std::string& name, Value val) {
-    // Allow initial binding of constants in global env (before any user code)
-    // Reject re-assignment (i.e., if already exists and is a constant)
-    if (name == "true" || name == "false" || name == "None") {
-        // Only allow if not yet defined (e.g., during interpreter init)
+    if (name == "true" || name == "false" || name == "none") {
         if (vars.find(name) != vars.end()) {
             throw std::runtime_error("Cannot reassign constant '" + name + "'");
-        }
-        // First-time binding: allow
+		}
     }
     vars[name] = std::move(val);
 }
 
-// ===== INTERPRETER =====
 Interpreter::Interpreter(std::string stdlib_path_, const std::string& source)
     : global_env(std::make_shared<Environment>(nullptr)),
       functions(),
@@ -104,7 +97,7 @@ Interpreter::Interpreter(std::string stdlib_path_, const std::string& source)
       stdlib_path(std::move(stdlib_path_)),
       s(source) {
 
-    global_env->set("None", Value());
+    global_env->set("null", Value());
     global_env->set("true", Value::make_bool(true));
     global_env->set("false", Value::make_bool(false));
 
@@ -259,7 +252,7 @@ Value Interpreter::parse_expression(std::string expr, std::shared_ptr<Environmen
 
                 if (id == "true") return Value::make_bool(true);
                 if (id == "false") return Value::make_bool(false);
-                if (id == "None") return Value();
+                if (id == "null") return Value();
 
                 auto valopt = env->get(id);
                 if (!valopt.has_value()) {
@@ -565,7 +558,15 @@ void Interpreter::execute_block(const NodeList& nodes, std::shared_ptr<Environme
                         throw;
                     }
                 }
-            } else {
+            } else if (auto r = std::dynamic_pointer_cast<Require>(node)) {
+				std::ifstream ifs(r->path);
+				if (!ifs) throw std::runtime_error("Require failed: " + r->path);
+				std::string code((std::istreambuf_iterator<char>(ifs)), {});
+				auto nodes = parse(code);
+				execute_block(nodes, env);
+			} else if (auto c = std::dynamic_pointer_cast<ClassDef>(node)) {
+				env->set(c->name, Value::make_str("<class "+c->name+">"));
+			} else {
                 throw std::runtime_error("Unknown AST node");
             }
         } catch (const std::exception& e) {

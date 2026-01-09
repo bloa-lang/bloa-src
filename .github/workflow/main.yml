@@ -1,0 +1,28 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt update
+          sudo apt install -y clang-format clang-tidy cppcheck
+
+      - name: clang-format check
+        run: |
+          clang-format --dry-run --Werror \
+            $(git ls-files '*.cpp' '*.hpp')
+
+      - name: clang-tidy
+        run: |
+          clang-tidy $(git ls-files '*.cpp') -- -std=c++20
+
+      - name: cppcheck
+        run: |
+          cppcheck --enable=all --error-exitcode=1 .
