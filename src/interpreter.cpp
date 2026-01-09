@@ -71,7 +71,6 @@ static const std::vector<Value>& as_list(const Value& v) {
     return std::get<std::vector<Value>>(v.v);
 }
 
-// ===== ENVIRONMENT =====
 Environment::Environment(std::shared_ptr<Environment> parent_)
     : parent(std::move(parent_)), vars() {}
 
@@ -83,19 +82,14 @@ std::optional<Value> Environment::get(const std::string& name) const {
 }
 
 void Environment::set(const std::string& name, Value val) {
-    // Allow initial binding of constants in global env (before any user code)
-    // Reject re-assignment (i.e., if already exists and is a constant)
-    if (name == "true" || name == "false" || name == "None") {
-        // Only allow if not yet defined (e.g., during interpreter init)
+    if (name == "true" || name == "false" || name == "none") {
         if (vars.find(name) != vars.end()) {
             throw std::runtime_error("Cannot reassign constant '" + name + "'");
-        }
-        // First-time binding: allow
+		}
     }
     vars[name] = std::move(val);
 }
 
-// ===== INTERPRETER =====
 Interpreter::Interpreter(std::string stdlib_path_, const std::string& source)
     : global_env(std::make_shared<Environment>(nullptr)),
       functions(),
@@ -564,7 +558,15 @@ void Interpreter::execute_block(const NodeList& nodes, std::shared_ptr<Environme
                         throw;
                     }
                 }
-            } else {
+            } else if (auto r = std::dynamic_pointer_cast<Require>(node)) {
+				std::ifstream ifs(r->path);
+				if (!ifs) throw std::runtime_error("Require failed: " + r->path);
+				std::string code((std::istreambuf_iterator<char>(ifs)), {});
+				auto nodes = parse(code);
+				execute_block(nodes, env);
+			} else if (auto c = std::dynamic_pointer_cast<ClassDef>(node)) {
+				env->set(c->name, Value::make_str("<class "+c->name+">"));
+			} else {
                 throw std::runtime_error("Unknown AST node");
             }
         } catch (const std::exception& e) {
