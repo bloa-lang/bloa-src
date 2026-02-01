@@ -417,7 +417,7 @@ Value Interpreter::parse_expression(std::string expr,
             } catch (const ReturnSignal &sig) {
               base_val = sig.val;
             } catch (const std::string &) {
-              //later
+              // later
             }
             continue;
           }
