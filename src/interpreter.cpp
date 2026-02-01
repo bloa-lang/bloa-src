@@ -84,6 +84,10 @@ static const std::vector<Value> &as_list(const Value &v) {
   return std::get<std::vector<Value>>(v.v);
 }
 
+struct ReturnSignal {
+  Value val;
+};
+
 Environment::Environment(std::shared_ptr<Environment> parent_)
     : parent(std::move(parent_)), vars() {}
 
@@ -409,9 +413,12 @@ Value Interpreter::parse_expression(std::string expr,
             }
             try {
               interp->execute_block(entry.block, call_env);
+              base_val = Value();
+            } catch (const ReturnSignal &sig) {
+              base_val = sig.val;
             } catch (const std::string &) {
+              //later
             }
-            base_val = Value();
             continue;
           }
 
@@ -583,7 +590,8 @@ void Interpreter::execute_block(const NodeList &nodes,
         fake_expr << ')';
         eval_expr(fake_expr.str(), env);
       } else if (auto ret = std::dynamic_pointer_cast<Return>(node)) {
-        // ignored
+        Value v = eval_expr(ret->expr, env);
+        throw ReturnSignal{v};
       } else if (auto imp = std::dynamic_pointer_cast<Import>(node)) {
         std::string mod = imp->name;
         std::replace(mod.begin(), mod.end(), '\\',
