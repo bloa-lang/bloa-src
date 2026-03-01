@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 
-#define BLOA_VERSION "0.1.0-alpha"
+#define BLOA_VERSION "0.2.0-alpha"
 
 void print_help() {
   std::cout << "BLOA — Lightweight scripting language\n"
