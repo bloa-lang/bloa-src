@@ -90,7 +90,7 @@ Environment::Environment(std::shared_ptr<Environment> parent_)
 std::optional<Value> Environment::get(const std::string &name) const {
   auto it = vars.find(name);
   if (it != vars.end())
-    return it->second;
+    return it->second.value;
   if (parent)
     return parent->get(name);
   return std::nullopt;
@@ -102,7 +102,12 @@ void Environment::set(const std::string &name, Value val) {
       throw std::runtime_error("Cannot reassign constant '" + name + "'");
     }
   }
-  vars[name] = std::move(val);
+  auto it = vars.find(name);
+  if (it != vars.end()) {
+    it->second.value = std::move(val);
+  } else {
+    vars[name] = Variable{std::move(val), std::string{}};
+  }
 }
 
 Interpreter::Interpreter(std::string stdlib_path_, const std::string &source)

@@ -28,6 +28,23 @@ int indent_level(const std::string &line) {
   return count;
 }
 
+static int first_nonspace_col(const std::string &s) {
+  size_t pos = s.find_first_not_of(" \t\r\n");
+  if (pos == std::string::npos)
+    return 1;
+  return (int)pos + 1;
+}
+
+static void throw_parse_error(int line_idx, const std::string &msg,
+                             const std::string &raw_line, int col = -1) {
+  if (col == -1)
+    col = first_nonspace_col(raw_line);
+  std::ostringstream oss;
+  oss << "Parse error at line " << line_idx << ":" << col << ": " << msg
+      << "\n  " << raw_line;
+  throw ParseError(oss.str(), line_idx, col);
+}
+
 static bool starts_with(const std::string &s, const std::string &p) {
   return s.size() >= p.size() && s.compare(0, p.size(), p) == 0;
 }
@@ -64,8 +81,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     if (indent < base_indent)
       break;
     if (indent > base_indent)
-      throw std::runtime_error("Unexpected indent at line " +
-                               std::to_string(idx + 1));
+      throw_parse_error(idx + 1, "Unexpected indent", raw_line, indent + 1);
 
     /* block end */
     if (line == "}") {
@@ -84,8 +100,8 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     if (starts_with(line, "ask ")) {
       auto pos = line.find("->");
       if (pos == std::string::npos)
-        throw std::runtime_error("Invalid ask syntax at line " +
-                                 std::to_string(idx + 1));
+        throw_parse_error(idx + 1, "Invalid ask syntax (expected '->')",
+                          raw_line, first_nonspace_col(raw_line));
       nodes.push_back(std::make_shared<Ask>(ltrim(line.substr(4, pos - 4)),
                                             ltrim(line.substr(pos + 2))));
       idx++;
@@ -159,8 +175,9 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       std::string header = line.substr(9, line.size() - 11);
       auto pos = header.find(" as ");
       if (pos == std::string::npos)
-        throw std::runtime_error("Invalid foreach syntax at line " +
-                                 std::to_string(idx + 1));
+        throw_parse_error(idx + 1,
+                          "Invalid foreach syntax (expected 'as' in header)",
+                          raw_line, first_nonspace_col(raw_line));
       std::string iterable = header.substr(0, pos);
       std::string var = header.substr(pos + 4);
       auto res = parse_block(lines, idx + 1, base_indent);
@@ -174,8 +191,9 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       std::string header = line.substr(9, line.size() - 10);
       auto pos = header.find('(');
       if (pos == std::string::npos)
-        throw std::runtime_error("Invalid function syntax at line " +
-                                 std::to_string(idx + 1));
+        throw_parse_error(idx + 1,
+                          "Invalid function syntax (expected '(' after name)",
+                          raw_line, first_nonspace_col(raw_line));
 
       std::string name = header.substr(0, pos);
       std::string params_raw = header.substr(pos + 1, header.size() - pos - 2);

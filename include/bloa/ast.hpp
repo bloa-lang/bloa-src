@@ -3,6 +3,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <optional>
 
 namespace bloa {
 
@@ -64,9 +65,20 @@ struct Import : Node {
   std::string name;
   Import(std::string n) : name(std::move(n)) {}
 };
+struct Require : Node {
+  std::string path;
+  Require(std::string p) : path(std::move(p)) {}
+};
 struct ExprStmt : Node {
   std::string expr;
   ExprStmt(std::string e) : expr(std::move(e)) {}
+};
+
+struct ClassDef : Node {
+  std::string name;
+  NodeList block;
+  ClassDef(std::string n, NodeList b)
+      : name(std::move(n)), block(std::move(b)) {}
 };
 
 struct While : Node {
