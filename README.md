@@ -29,7 +29,24 @@ cp bloa ../package_i386/usr/local/bin/
 # edit control & build
 chmod 0755 package_i386/DEBIAN
 sudo dpkg-deb --build package_i386 bloa_0.2.0-alpha_i386.deb
-```
+# all architecture (use when you just want a generic package, e.g. containing
+# scripts or the prebuilt binary for the current host; the package is marked
+# "Architecture: all" so dpkg will install it regardless of machine type)
+mkdir -p package_all/DEBIAN package_all/usr/local/bin
+# copy whatever payload makes sense; we'll just include amd64 binary here as an
+# example, but you can replace it with a shell wrapper or source archive
+cp build/bloa package_all/usr/local/bin/
+cat > package_all/DEBIAN/control <<'EOF'
+Package: bloa
+Version: 0.2.0-alpha
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: bloa <noreply@local>
+Description: bloa language runtime (architecture independent "all" package)
+EOF
+chmod 0755 package_all/DEBIAN
+sudo dpkg-deb --build package_all bloa_0.2.0-alpha_all.deb```
 
 ## Releases
 
