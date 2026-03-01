@@ -24,14 +24,14 @@ jobs:
           mkdir -p package_amd64/DEBIAN package_amd64/usr/local/bin
           cp build/bloa package_amd64/usr/local/bin/bloa
           cat > package_amd64/DEBIAN/control <<EOF
-Package: bloa
-Version: ${{ github.ref_name }}
-Section: utils
-Priority: optional
-Architecture: amd64
-Maintainer: bloa <noreply@local>
-Description: bloa language runtime (${{ github.ref_name }})
-EOF
+          Package: bloa
+          Version: ${{ github.ref_name }}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: bloa <noreply@local>
+          Description: bloa language runtime (${{ github.ref_name }})
+          EOF
           chmod 0755 package_amd64/DEBIAN
           dpkg-deb --build package_amd64 dist/bloa_${{ github.ref_name }}_amd64.deb
       - name: Configure and build i386
@@ -44,14 +44,14 @@ EOF
           mkdir -p package_i386/DEBIAN package_i386/usr/local/bin
           cp build32/bloa package_i386/usr/local/bin/bloa
           cat > package_i386/DEBIAN/control <<EOF
-Package: bloa
-Version: ${{ github.ref_name }}
-Section: utils
-Priority: optional
-Architecture: i386
-Maintainer: bloa <noreply@local>
-Description: bloa language runtime (${{ github.ref_name }})
-EOF
+          Package: bloa
+          Version: ${{ github.ref_name }}
+          Section: utils
+          Priority: optional
+          Architecture: i386
+          Maintainer: bloa <noreply@local>
+          Description: bloa language runtime (${{ github.ref_name }})
+          EOF
           chmod 0755 package_i386/DEBIAN
           dpkg-deb --build package_i386 dist/bloa_${{ github.ref_name }}_i386.deb
       - name: Package all
@@ -59,14 +59,14 @@ EOF
           mkdir -p package_all/DEBIAN package_all/usr/local/bin
           cp build/bloa package_all/usr/local/bin/bloa
           cat > package_all/DEBIAN/control <<EOF
-Package: bloa
-Version: ${{ github.ref_name }}
-Section: utils
-Priority: optional
-Architecture: all
-Maintainer: bloa <noreply@local>
-Description: bloa language runtime (architecture independent all package)
-EOF
+          Package: bloa
+          Version: ${{ github.ref_name }}
+          Section: utils
+          Priority: optional
+          Architecture: all
+          Maintainer: bloa <noreply@local>
+          Description: bloa language runtime (architecture independent all package)
+          EOF
           chmod 0755 package_all/DEBIAN
           dpkg-deb --build package_all dist/bloa_${{ github.ref_name }}_all.deb
       - name: Upload artifacts
