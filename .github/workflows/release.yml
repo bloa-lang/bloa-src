@@ -29,7 +29,7 @@ Section: utils
 Priority: optional
 Architecture: amd64
 Maintainer: bloa <noreply@local>
-Description: bloa language runtime (${ { github.ref_name }})
+Description: bloa language runtime (${{ github.ref_name }})
 EOF
           chmod 0755 package_amd64/DEBIAN
           dpkg-deb --build package_amd64 dist/bloa_${{ github.ref_name }}_amd64.deb
@@ -49,7 +49,7 @@ Section: utils
 Priority: optional
 Architecture: i386
 Maintainer: bloa <noreply@local>
-Description: bloa language runtime (${ { github.ref_name }})
+Description: bloa language runtime (${{ github.ref_name }})
 EOF
           chmod 0755 package_i386/DEBIAN
           dpkg-deb --build package_i386 dist/bloa_${{ github.ref_name }}_i386.deb
