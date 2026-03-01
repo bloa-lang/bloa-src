@@ -14,6 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake build-essential g++-multilib libc6-dev-i386 dpkg-dev
+          mkdir -p dist
       - name: Configure and build amd64
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -22,7 +23,7 @@ jobs:
         run: |
           mkdir -p package_amd64/DEBIAN package_amd64/usr/local/bin
           cp build/bloa package_amd64/usr/local/bin/bloa
-          cat > package_amd64/DEBIAN/control <<'EOF'
+          cat > package_amd64/DEBIAN/control <<EOF
 Package: bloa
 Version: ${{ github.ref_name }}
 Section: utils
@@ -42,7 +43,7 @@ EOF
         run: |
           mkdir -p package_i386/DEBIAN package_i386/usr/local/bin
           cp build32/bloa package_i386/usr/local/bin/bloa
-          cat > package_i386/DEBIAN/control <<'EOF'
+          cat > package_i386/DEBIAN/control <<EOF
 Package: bloa
 Version: ${{ github.ref_name }}
 Section: utils
@@ -57,7 +58,7 @@ EOF
         run: |
           mkdir -p package_all/DEBIAN package_all/usr/local/bin
           cp build/bloa package_all/usr/local/bin/bloa
-          cat > package_all/DEBIAN/control <<'EOF'
+          cat > package_all/DEBIAN/control <<EOF
 Package: bloa
 Version: ${{ github.ref_name }}
 Section: utils
