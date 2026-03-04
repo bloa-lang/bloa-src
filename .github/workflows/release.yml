@@ -72,7 +72,7 @@ jobs:
         run: |
           mkdir -p package_aarch64/DEBIAN package_aarch64/usr/local/bin
           cp build/bloa package_aarch64/usr/local/bin/bloa
-          cat > package_all/DEBIAN/control <<EOF
+          cat > package_aarch64/DEBIAN/control <<EOF
           Package: bloa
           Version: ${{ github.ref_name }}
           Section: utils
