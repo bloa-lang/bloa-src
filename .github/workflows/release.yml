@@ -1,4 +1,4 @@
-name: Release
+name: Release (test file too)
 
 on:
   push:
@@ -69,6 +69,21 @@ jobs:
           EOF
           chmod 0755 package_all/DEBIAN
           dpkg-deb --build package_all dist/bloa_${{ github.ref_name }}_all.deb
+      - name: Package aarch64
+        run: |
+          mkdir -p package_all/DEBIAN package_all/usr/local/bin
+          cp build/bloa package_all/usr/local/bin/bloa
+          cat > package_all/DEBIAN/control <<EOF
+          Package: bloa
+          Version: ${{ github.ref_name }}
+          Section: utils
+          Priority: optional
+          Architecture: all
+          Maintainer: bloa <noreply@local>
+          Description: bloa language runtime (architecture independent aarch package)
+          EOF
+          chmod 0755 package_aarch64/DEBIAN
+          dpkg-deb --build package_all dist/bloa_${{ github.ref_name }}_aarch.deb
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
