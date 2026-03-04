@@ -70,7 +70,7 @@ jobs:
           chmod 0755 package_all/DEBIAN
           dpkg-deb --build package_all dist/bloa_${{ github.ref_name }}_all.deb
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: release-artifacts
           path: |
