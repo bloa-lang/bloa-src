@@ -2,8 +2,7 @@ name: Release (test file too)
 
 on:
   push:
-    tags:
-      - '*'
+  pull_request: 
 
 jobs:
   build:
