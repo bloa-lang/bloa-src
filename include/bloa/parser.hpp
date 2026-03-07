@@ -1,5 +1,6 @@
 #pragma once
 #include "bloa/ast.hpp"
+#include <stdexcept>
 #include <string>
 #include <vector>
 
