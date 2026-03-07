@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Input versi manual untuk testing'
+        description: 'Input version for testing'
         required: true
         default: '0.2.0-alpha'
 
@@ -52,7 +52,7 @@ jobs:
 
       - name: Packaging
         shell: bash
-        run: |
+        run: |2
           mkdir -p dist
           VERSION="${{ github.ref_name }}"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -62,49 +62,65 @@ jobs:
           case "${{ matrix.target }}" in
             windows-*)
               arch="${{ matrix.target == 'windows-x64' && 'x64' || 'x86' }}"
-              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_${arch}.exe ;;
+              cp build/Release/bloa.exe "dist/bloa_${VERSION}_windows_${arch}.exe"
+              ;;
             
             macos-universal)
-              cp build/bloa dist/bloa_${VERSION}_macos_universal
-              chmod +x dist/bloa_${VERSION}_macos_universal ;;
+              cp build/bloa "dist/bloa_${VERSION}_macos_universal"
+              chmod +x "dist/bloa_${VERSION}_macos_universal"
+              ;;
             
             linux-*)
               arch="${{ matrix.target == 'linux-amd64' && 'amd64' || 'i386' }}"
               t_arch="${{ matrix.target == 'linux-amd64' && 'aarch64' || 'arm' }}"
               
+              # Linux Standard
               L_ROOT="pkg_linux_${arch}"
               mkdir -p "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin"
               cp build/bloa "$L_ROOT/usr/bin/bloa"
               chmod 0755 "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin/bloa"
+              cat > "$L_ROOT/DEBIAN/control" <<'EOF'
+          Package: bloa
+          Version: ${VERSION}
+          Section: utils
+          Priority: optional
+          Architecture: ${arch}
+          Maintainer: bloa-lang
+          Description: Bloa runtime for Standard Linux (${arch})
+          EOF
+              # Since we used 'EOF', variables won't expand inside. 
+              # Let's fix that by using EOF without quotes for variable support:
               cat > "$L_ROOT/DEBIAN/control" <<EOF
-              Package: bloa
-              Version: $VERSION
-              Section: utils
-              Priority: optional
-              Architecture: $arch
-              Maintainer: bloa-lang
-              Description: Bloa runtime for Standard Linux ($arch)
-              EOF
+          Package: bloa
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: $arch
+          Maintainer: bloa-lang
+          Description: Bloa runtime for Standard Linux ($arch)
+          EOF
               dpkg-deb --build "$L_ROOT" "dist/bloa_${VERSION}_linux_${arch}.deb"
               
+              # Termux
               T_ROOT="pkg_termux_${t_arch}"
               T_PFX="data/data/com.termux/files/usr"
               mkdir -p "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin"
               cp build/bloa "$T_ROOT/$T_PFX/bin/bloa"
               chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
               cat > "$T_ROOT/DEBIAN/control" <<EOF
-              Package: bloa
-              Version: $VERSION
-              Section: utils
-              Priority: optional
-              Architecture: $t_arch
-              Maintainer: bloa-lang
-              Description: Bloa runtime for Termux ($t_arch)
-              EOF
+          Package: bloa
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: $t_arch
+          Maintainer: bloa-lang
+          Description: Bloa runtime for Termux ($t_arch)
+          EOF
               dpkg-deb --build "$T_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb"
               
-              cp build/bloa dist/bloa_${VERSION}_linux_${arch}_bin
-              chmod +x dist/bloa_${VERSION}_linux_${arch}_bin ;;
+              cp build/bloa "dist/bloa_${VERSION}_linux_${arch}_bin"
+              chmod +x "dist/bloa_${VERSION}_linux_${arch}_bin"
+              ;;
           esac
 
       - name: Create GitHub Release
