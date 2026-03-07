@@ -1,4 +1,4 @@
-name: Release Bloa (Full Support)
+name: Release Bloa (All OS & All Bits)
 
 on:
   push:
@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versi untuk testing (misal: 0.2.0-test)'
+        description: 'Input versi manual untuk testing'
         required: true
-        default: '0.0.1-dev'
+        default: '0.2.0-alpha'
 
 permissions:
   contents: write
@@ -50,7 +50,7 @@ jobs:
           fi
           cmake --build build --config Release
 
-      - name: Package & Set Permissions
+      - name: Packaging
         shell: bash
         run: |
           mkdir -p dist
@@ -72,18 +72,27 @@ jobs:
               arch="${{ matrix.target == 'linux-amd64' && 'amd64' || 'i386' }}"
               t_arch="${{ matrix.target == 'linux-amd64' && 'aarch64' || 'arm' }}"
               
-              cp build/bloa dist/bloa_${VERSION}_linux_${arch}
-              chmod 0755 dist/bloa_${VERSION}_linux_${arch}
+              L_ROOT="pkg_linux_${arch}"
+              mkdir -p "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin"
+              cp build/bloa "$L_ROOT/usr/bin/bloa"
+              chmod 0755 "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin/bloa"
+              cat > "$L_ROOT/DEBIAN/control" <<EOF
+              Package: bloa
+              Version: $VERSION
+              Section: utils
+              Priority: optional
+              Architecture: $arch
+              Maintainer: bloa-lang
+              Description: Bloa runtime for Standard Linux ($arch)
+              EOF
+              dpkg-deb --build "$L_ROOT" "dist/bloa_${VERSION}_linux_${arch}.deb"
               
-              PKG_ROOT="pkg_termux_${arch}"
-              T_BIN="$PKG_ROOT/data/data/com.termux/files/usr/bin"
-              mkdir -p "$T_BIN" "$PKG_ROOT/DEBIAN"
-              cp build/bloa "$T_BIN/bloa"
-              
-              chmod 0755 "$PKG_ROOT/DEBIAN"
-              chmod 0755 "$T_BIN/bloa"
-              
-              cat > "$PKG_ROOT/DEBIAN/control" <<EOF
+              T_ROOT="pkg_termux_${t_arch}"
+              T_PFX="data/data/com.termux/files/usr"
+              mkdir -p "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin"
+              cp build/bloa "$T_ROOT/$T_PFX/bin/bloa"
+              chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
+              cat > "$T_ROOT/DEBIAN/control" <<EOF
               Package: bloa
               Version: $VERSION
               Section: utils
@@ -92,7 +101,10 @@ jobs:
               Maintainer: bloa-lang
               Description: Bloa runtime for Termux ($t_arch)
               EOF
-              dpkg-deb --build "$PKG_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb" ;;
+              dpkg-deb --build "$T_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb"
+              
+              cp build/bloa dist/bloa_${VERSION}_linux_${arch}_bin
+              chmod +x dist/bloa_${VERSION}_linux_${arch}_bin ;;
           esac
 
       - name: Create GitHub Release
@@ -100,5 +112,6 @@ jobs:
         with:
           files: dist/*
           tag_name: ${{ github.ref_name || github.event.inputs.version }}
+          name: Release ${{ github.ref_name || github.event.inputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
