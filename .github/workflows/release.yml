@@ -1,4 +1,4 @@
-name: Release (test file too)
+name: Release Bloa (All OS & All Bits)
 
 on:
   push:
@@ -6,88 +6,78 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # WINDOWS
+          - os: windows-latest
+            target: windows-x64
+          - os: windows-latest
+            target: windows-x86
+          # LINUX & TERMUX
+          - os: ubuntu-latest
+            target: linux-amd64
+          - os: ubuntu-latest
+            target: linux-i386
+          # MACOS
+          - os: macos-latest
+            target: macos-universal
+
     steps:
-      - uses: actions/checkout@v6
-      - name: Install packages
+      - uses: actions/checkout@v4
+
+      - name: Install 32-bit support (Linux)
+        if: matrix.target == 'linux-i386'
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386
+
+      - name: Configure & Build
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential g++-multilib libc6-dev-i386 dpkg-dev
-          mkdir -p dist
-      - name: Configure and build amd64
-        run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          if [[ "${{ matrix.target }}" == "windows-x86" ]]; then
+            cmake -S . -B build -A Win32 -DCMAKE_BUILD_TYPE=Release
+          elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
+          else
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          fi
           cmake --build build --config Release
-      - name: Package amd64
+
+      - name: Packaging
+        shell: bash
         run: |
-          mkdir -p package_amd64/DEBIAN package_amd64/usr/local/bin
-          cp build/bloa package_amd64/usr/local/bin/bloa
-          cat > package_amd64/DEBIAN/control <<EOF
-          Package: bloa
-          Version: ${{ github.ref_name }}
-          Section: utils
-          Priority: optional
-          Architecture: amd64
-          Maintainer: bloa <noreply@local>
-          Description: bloa language runtime (${{ github.ref_name }})
-          EOF
-          chmod 0755 package_amd64/DEBIAN
-          dpkg-deb --build package_amd64 dist/bloa_${{ github.ref_name }}_amd64.deb
-      - name: Configure and build i386
-        run: |
-          rm -rf build32
-          cmake -S . -B build32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
-          cmake --build build32 --config Release
-      - name: Package i386
-        run: |
-          mkdir -p package_i386/DEBIAN package_i386/usr/local/bin
-          cp build32/bloa package_i386/usr/local/bin/bloa
-          cat > package_i386/DEBIAN/control <<EOF
-          Package: bloa
-          Version: ${{ github.ref_name }}
-          Section: utils
-          Priority: optional
-          Architecture: i386
-          Maintainer: bloa <noreply@local>
-          Description: bloa language runtime (${{ github.ref_name }})
-          EOF
-          chmod 0755 package_i386/DEBIAN
-          dpkg-deb --build package_i386 dist/bloa_${{ github.ref_name }}_i386.deb
-      - name: Package all
-        run: |
-          mkdir -p package_all/DEBIAN package_all/usr/local/bin
-          cp build/bloa package_all/usr/local/bin/bloa
-          cat > package_all/DEBIAN/control <<EOF
-          Package: bloa
-          Version: ${{ github.ref_name }}
-          Section: utils
-          Priority: optional
-          Architecture: all
-          Maintainer: bloa <noreply@local>
-          Description: bloa language runtime (architecture independent all package)
-          EOF
-          chmod 0755 package_all/DEBIAN
-          dpkg-deb --build package_all dist/bloa_${{ github.ref_name }}_all.deb
-      - name: Package aarch64
-        run: |
-          mkdir -p package_aarch64/DEBIAN package_aarch64/usr/local/bin
-          cp build/bloa package_aarch64/usr/local/bin/bloa
-          cat > package_aarch64/DEBIAN/control <<EOF
-          Package: bloa
-          Version: ${{ github.ref_name }}
-          Section: utils
-          Priority: optional
-          Architecture: aarch64
-          Maintainer: bloa <noreply@local>
-          Description: bloa language runtime (architecture independent aarch64 package)
-          EOF
-          chmod 0755 package_aarch64/DEBIAN
-          dpkg-deb --build package_aarch64 dist/bloa_${{ github.ref_name }}_aarch64.deb
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+          mkdir -p dist
+          VERSION="${{ github.ref_name }}"
+          
+          case "${{ matrix.target }}" in
+            windows-x64)
+              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_x64.exe ;;
+            windows-x86)
+              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_x86.exe ;;
+            macos-universal)
+              cp build/bloa dist/bloa_${VERSION}_macos_universal ;;
+            linux-amd64)
+              cp build/bloa dist/bloa_${VERSION}_linux_amd64
+              # Termux 64-bit DEB
+              T_ROOT="pkg_t64/data/data/com.termux/files/usr"
+              mkdir -p "$T_ROOT/bin" "pkg_t64/DEBIAN"
+              cp build/bloa "$T_ROOT/bin/bloa"
+              echo "Package: bloa\nVersion: $VERSION\nArchitecture: aarch64\nMaintainer: bloa\nDescription: Bloa for Termux 64bit" > pkg_t64/DEBIAN/control
+              dpkg-deb --build pkg_t64 dist/bloa_${VERSION}_termux_aarch64.deb ;;
+            linux-i386)
+              cp build/bloa dist/bloa_${VERSION}_linux_i386
+              # Termux 32-bit DEB
+              T_ROOT="pkg_t32/data/data/com.termux/files/usr"
+              mkdir -p "$T_ROOT/bin" "pkg_t32/DEBIAN"
+              cp build/bloa "$T_ROOT/bin/bloa"
+              echo "Package: bloa\nVersion: $VERSION\nArchitecture: arm\nMaintainer: bloa\nDescription: Bloa for Termux 32bit" > pkg_t32/DEBIAN/control
+              dpkg-deb --build pkg_t32 dist/bloa_${VERSION}_termux_arm.deb ;;
+          esac
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: release-artifacts
-          path: |
-            build/bloa
-            build32/bloa
-            dist/*.deb
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
