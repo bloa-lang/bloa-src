@@ -1,12 +1,17 @@
-name: Release Bloa (All OS & All Bits)
+name: Release Bloa (Full Support)
 
 on:
   push:
     tags: "*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versi untuk testing (misal: 0.2.0-test)'
+        required: true
+        default: '0.0.1-dev'
 
 permissions:
   contents: write
-  actions: write
 
 jobs:
   build:
@@ -15,28 +20,25 @@ jobs:
     strategy:
       matrix:
         include:
-          # WINDOWS
           - os: windows-latest
             target: windows-x64
           - os: windows-latest
             target: windows-x86
-          # LINUX & TERMUX
           - os: ubuntu-latest
             target: linux-amd64
           - os: ubuntu-latest
             target: linux-i386
-          # MACOS
           - os: macos-latest
             target: macos-universal
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install 32-bit support (Linux)
+      - name: Install 32-bit (Linux Only)
         if: matrix.target == 'linux-i386'
         run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386
 
-      - name: Configure & Build
+      - name: Build Binary
         shell: bash
         run: |
           if [[ "${{ matrix.target }}" == "windows-x86" ]]; then
@@ -48,40 +50,55 @@ jobs:
           fi
           cmake --build build --config Release
 
-      - name: Packaging
+      - name: Package & Set Permissions
         shell: bash
         run: |
           mkdir -p dist
           VERSION="${{ github.ref_name }}"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          fi
           
           case "${{ matrix.target }}" in
-            windows-x64)
-              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_x64.exe ;;
-            windows-x86)
-              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_x86.exe ;;
+            windows-*)
+              arch="${{ matrix.target == 'windows-x64' && 'x64' || 'x86' }}"
+              cp build/Release/bloa.exe dist/bloa_${VERSION}_windows_${arch}.exe ;;
+            
             macos-universal)
-              cp build/bloa dist/bloa_${VERSION}_macos_universal ;;
-            linux-amd64)
-              cp build/bloa dist/bloa_${VERSION}_linux_amd64
-              # Termux 64-bit DEB
-              T_ROOT="pkg_t64/data/data/com.termux/files/usr"
-              mkdir -p "$T_ROOT/bin" "pkg_t64/DEBIAN"
-              cp build/bloa "$T_ROOT/bin/bloa"
-              echo "Package: bloa\nVersion: $VERSION\nArchitecture: aarch64\nMaintainer: bloa\nDescription: Bloa for Termux 64bit" > pkg_t64/DEBIAN/control
-              dpkg-deb --build pkg_t64 dist/bloa_${VERSION}_termux_aarch64.deb ;;
-            linux-i386)
-              cp build/bloa dist/bloa_${VERSION}_linux_i386
-              # Termux 32-bit DEB
-              T_ROOT="pkg_t32/data/data/com.termux/files/usr"
-              mkdir -p "$T_ROOT/bin" "pkg_t32/DEBIAN"
-              cp build/bloa "$T_ROOT/bin/bloa"
-              echo "Package: bloa\nVersion: $VERSION\nArchitecture: arm\nMaintainer: bloa\nDescription: Bloa for Termux 32bit" > pkg_t32/DEBIAN/control
-              dpkg-deb --build pkg_t32 dist/bloa_${VERSION}_termux_arm.deb ;;
+              cp build/bloa dist/bloa_${VERSION}_macos_universal
+              chmod +x dist/bloa_${VERSION}_macos_universal ;;
+            
+            linux-*)
+              arch="${{ matrix.target == 'linux-amd64' && 'amd64' || 'i386' }}"
+              t_arch="${{ matrix.target == 'linux-amd64' && 'aarch64' || 'arm' }}"
+              
+              cp build/bloa dist/bloa_${VERSION}_linux_${arch}
+              chmod 0755 dist/bloa_${VERSION}_linux_${arch}
+              
+              PKG_ROOT="pkg_termux_${arch}"
+              T_BIN="$PKG_ROOT/data/data/com.termux/files/usr/bin"
+              mkdir -p "$T_BIN" "$PKG_ROOT/DEBIAN"
+              cp build/bloa "$T_BIN/bloa"
+              
+              chmod 0755 "$PKG_ROOT/DEBIAN"
+              chmod 0755 "$T_BIN/bloa"
+              
+              cat > "$PKG_ROOT/DEBIAN/control" <<EOF
+              Package: bloa
+              Version: $VERSION
+              Section: utils
+              Priority: optional
+              Architecture: $t_arch
+              Maintainer: bloa-lang
+              Description: Bloa runtime for Termux ($t_arch)
+              EOF
+              dpkg-deb --build "$PKG_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb" ;;
           esac
 
-      - name: Upload Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          tag_name: ${{ github.ref_name || github.event.inputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
