@@ -28,15 +28,17 @@ jobs:
             target: linux-amd64
           - os: ubuntu-latest
             target: linux-i386
+          - os: ubuntu-latest
+            target: linux-arm64
           - os: macos-latest
             target: macos-universal
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install 32-bit (Linux Only)
-        if: matrix.target == 'linux-i386'
-        run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386
+      - name: Install Linux Toolchains
+        if: startsWith(matrix.target,'linux')
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Build Binary
         shell: bash
@@ -45,6 +47,12 @@ jobs:
             cmake -S . -B build -A Win32 -DCMAKE_BUILD_TYPE=Release
           elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
+          elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_SYSTEM_NAME=Linux \
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
           else
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           fi
@@ -71,8 +79,14 @@ jobs:
               ;;
             
             linux-*)
-              arch="${{ matrix.target == 'linux-amd64' && 'amd64' || 'i386' }}"
-              t_arch="${{ matrix.target == 'linux-amd64' && 'aarch64' || 'arm' }}"
+              if [[ "${{ matrix.target }}" == "linux-amd64" ]]; then
+                arch="amd64"
+              elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
+                arch="i386"
+              else
+                arch="arm64"
+              fi
+              t_arch="$arch"
               
               # Linux Standard
               L_ROOT="pkg_linux_${arch}"
