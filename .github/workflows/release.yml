@@ -4,6 +4,10 @@ on:
   push:
     tags: "*"
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   build:
     name: Build ${{ matrix.target }}
