@@ -30,6 +30,8 @@ jobs:
             target: linux-i386
           - os: ubuntu-latest
             target: linux-arm64
+          - os: ubuntu-latest
+            target: linux-armhf
           - os: macos-latest
             target: macos-universal
 
@@ -38,7 +40,7 @@ jobs:
 
       - name: Install Linux Toolchains
         if: startsWith(matrix.target,'linux')
-        run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
       - name: Build Binary
         shell: bash
@@ -53,6 +55,12 @@ jobs:
               -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
               -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
               -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+          elif [[ "${{ matrix.target }}" == "linux-armhf" ]]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_SYSTEM_NAME=Linux \
+              -DCMAKE_SYSTEM_PROCESSOR=arm \
+              -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
+              -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++
           else
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           fi
@@ -83,8 +91,10 @@ jobs:
                 arch="amd64"
               elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
                 arch="i386"
-              else
+              elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
                 arch="arm64"
+              else
+                arch="armhf"
               fi
               t_arch="$arch"
               
