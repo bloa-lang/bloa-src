@@ -304,7 +304,8 @@ Value Interpreter::parse_expression(std::string expr,
         // Check if it's a class
         bool is_class = interp->classes.find(id) != interp->classes.end();
         // Check if it's a function
-        bool is_function = interp->functions.find(id) != interp->functions.end();
+        bool is_function =
+            interp->functions.find(id) != interp->functions.end();
 
         if (!found_in_env && !is_class && !is_function) {
           error("Name '" + id + "' is not defined");
@@ -403,7 +404,8 @@ Value Interpreter::parse_expression(std::string expr,
             if (class_it != interp->classes.end()) {
               // Create new instance
               const auto &class_def = class_it->second;
-              auto instance_env = std::make_shared<Environment>(class_def.class_env);
+              auto instance_env =
+                  std::make_shared<Environment>(class_def.class_env);
               auto instance = Value::make_object(id, instance_env);
 
               // Call __init__ if it exists
@@ -416,7 +418,8 @@ Value Interpreter::parse_expression(std::string expr,
                         std::to_string(init_method.params.size() - 1) +
                         " arguments but got " + std::to_string(args.size()));
                 }
-                auto init_env = std::make_shared<Environment>(init_method.def_env);
+                auto init_env =
+                    std::make_shared<Environment>(init_method.def_env);
                 init_env->set(init_method.params[0], instance);  // self
                 for (size_t i = 0; i < args.size(); ++i) {
                   init_env->set(init_method.params[i + 1], args[i]);
@@ -491,11 +494,13 @@ Value Interpreter::parse_expression(std::string expr,
                 while (true) {
                   args.push_back(parse_expr());
                   if (match(')')) break;
-                  if (!match(',')) error("Expected ',' or ')' in argument list");
+                  if (!match(','))
+                    error("Expected ',' or ')' in argument list");
                 }
               }
 
-              auto obj_inst = std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
+              auto obj_inst =
+                  std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
               auto class_it = interp->classes.find(obj_inst->class_name);
               if (class_it == interp->classes.end()) {
                 error("Class '" + obj_inst->class_name + "' not found");
@@ -528,7 +533,8 @@ Value Interpreter::parse_expression(std::string expr,
               continue;
             } else {
               // Property access
-              auto obj_inst = std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
+              auto obj_inst =
+                  std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
               auto prop_val = obj_inst->properties->get(member);
               if (!prop_val.has_value()) {
                 error("Property '" + member + "' not found in object");
@@ -738,7 +744,6 @@ Value Interpreter::parse_expression(std::string expr,
       }
       return left;
     }
-
   };
 
   Parser p(expr, this, env);
@@ -787,7 +792,8 @@ void Interpreter::execute_block(const NodeList &nodes,
           throw std::runtime_error("Undefined object '" + masg->object + "'");
         }
         Value obj_val = *obj_val_opt;
-        if (!std::holds_alternative<std::shared_ptr<ObjectInstance>>(obj_val.v)) {
+        if (!std::holds_alternative<std::shared_ptr<ObjectInstance>>(
+                obj_val.v)) {
           throw std::runtime_error("Cannot assign to member of non-object");
         }
 
@@ -889,7 +895,8 @@ void Interpreter::execute_block(const NodeList &nodes,
         // Process class definition
         ClassDefEntry class_entry;
         class_entry.name = c->name;
-        class_entry.class_env = env;  // capture the class definition environment
+        class_entry.class_env =
+            env;  // capture the class definition environment
 
         // Extract methods from class body
         for (const auto &stmt : c->block) {

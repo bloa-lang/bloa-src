@@ -238,7 +238,8 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
           if (!(isalnum(c) || c == '_')) obj_ok = false;
 
         // Validate member name
-        bool mem_ok = !member.empty() && (isalpha(member[0]) || member[0] == '_');
+        bool mem_ok =
+            !member.empty() && (isalpha(member[0]) || member[0] == '_');
         for (char c : member)
           if (!(isalnum(c) || c == '_')) mem_ok = false;
 
