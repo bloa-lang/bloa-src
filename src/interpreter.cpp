@@ -593,7 +593,7 @@ void Interpreter::execute_block(const NodeList &nodes,
       } else if (auto imp = std::dynamic_pointer_cast<Import>(node)) {
         std::string mod = imp->name;
         std::replace(mod.begin(), mod.end(), '\\',
-                     fs::path::preferred_separator);
+                     static_cast<char>(fs::path::preferred_separator));
         fs::path p = stdlib_path.empty()
                          ? (fs::path(mod) += ".bloa")
                          : (fs::path(stdlib_path) / mod) += ".bloa";
