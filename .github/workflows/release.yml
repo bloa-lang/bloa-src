@@ -18,6 +18,7 @@ jobs:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -36,10 +37,11 @@ jobs:
             target: macos-universal
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Install Linux Toolchains
-        if: startsWith(matrix.target,'linux')
+        if: startsWith(matrix.target, 'linux')
         run: sudo apt-get update && sudo apt-get install -y g++-multilib libc6-dev-i386 gcc-aarch64-linux-gnu g++-aarch64-linux-gnu gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
       - name: Build Binary
@@ -61,6 +63,8 @@ jobs:
               -DCMAKE_SYSTEM_PROCESSOR=arm \
               -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
               -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++
+          elif [[ "${{ matrix.target }}" == "macos-universal" ]]; then
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
           else
             cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           fi
@@ -68,12 +72,9 @@ jobs:
 
       - name: Packaging
         shell: bash
-        run: |2
+        run: |
           mkdir -p dist
-          VERSION="${{ github.ref_name }}"
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          fi
+          VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}"
           
           case "${{ matrix.target }}" in
             windows-*)
@@ -89,31 +90,23 @@ jobs:
             linux-*)
               if [[ "${{ matrix.target }}" == "linux-amd64" ]]; then
                 arch="amd64"
+                t_arch="x86_64"
               elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
                 arch="i386"
+                t_arch="i686"
               elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
                 arch="arm64"
+                t_arch="aarch64"
               else
                 arch="armhf"
+                t_arch="arm"
               fi
-              t_arch="$arch"
               
-              # Linux Standard
+              # Linux Standard .deb
               L_ROOT="pkg_linux_${arch}"
               mkdir -p "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin"
               cp build/bloa "$L_ROOT/usr/bin/bloa"
               chmod 0755 "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin/bloa"
-              cat > "$L_ROOT/DEBIAN/control" <<'EOF'
-          Package: bloa
-          Version: ${VERSION}
-          Section: utils
-          Priority: optional
-          Architecture: ${arch}
-          Maintainer: bloa-lang
-          Description: Bloa runtime for Standard Linux (${arch})
-          EOF
-              # Since we used 'EOF', variables won't expand inside. 
-              # Let's fix that by using EOF without quotes for variable support:
               cat > "$L_ROOT/DEBIAN/control" <<EOF
           Package: bloa
           Version: $VERSION
@@ -125,7 +118,7 @@ jobs:
           EOF
               dpkg-deb --build "$L_ROOT" "dist/bloa_${VERSION}_linux_${arch}.deb"
               
-              # Termux
+              # Termux .deb
               T_ROOT="pkg_termux_${t_arch}"
               T_PFX="data/data/com.termux/files/usr"
               mkdir -p "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin"
@@ -142,16 +135,45 @@ jobs:
           EOF
               dpkg-deb --build "$T_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb"
               
+              # Standard Binaries
               cp build/bloa "dist/bloa_${VERSION}_linux_${arch}_bin"
               chmod +x "dist/bloa_${VERSION}_linux_${arch}_bin"
               ;;
           esac
 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+          retention-days: 1
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      - name: Set Release Version
+        id: get_version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          tag_name: ${{ github.ref_name || github.event.inputs.version }}
-          name: Release ${{ github.ref_name || github.event.inputs.version }}
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
