@@ -75,6 +75,14 @@ struct ExprStmt : Node {
   ExprStmt(std::string e) : expr(std::move(e)) {}
 };
 
+struct MemberAssign : Node {
+  std::string object;
+  std::string member;
+  std::string expr;
+  MemberAssign(std::string o, std::string m, std::string e)
+      : object(std::move(o)), member(std::move(m)), expr(std::move(e)) {}
+};
+
 struct ClassDef : Node {
   std::string name;
   NodeList block;

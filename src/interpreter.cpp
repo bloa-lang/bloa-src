@@ -42,6 +42,10 @@ static std::string value_to_string(const Value &v) {
     out += "]";
     return out;
   }
+  if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(v.v)) {
+    const auto &obj = std::get<std::shared_ptr<ObjectInstance>>(v.v);
+    return "<" + obj->class_name + " object>";
+  }
   return "<unknown>";
 }
 
@@ -73,6 +77,8 @@ static bool value_is_true(const Value &v) {
     return !std::get<std::string>(v.v).empty();
   if (std::holds_alternative<std::vector<Value>>(v.v))
     return !std::get<std::vector<Value>>(v.v).empty();
+  if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(v.v))
+    return true;  // all objects are truthy
   return false;
 }
 
@@ -107,6 +113,7 @@ void Environment::set(const std::string &name, Value val) {
 Interpreter::Interpreter(std::string stdlib_path_, const std::string &source)
     : global_env(std::make_shared<Environment>(nullptr)),
       functions(),
+      classes(),
       loaded_modules(),
       stdlib_path(std::move(stdlib_path_)),
       s(source) {
@@ -291,10 +298,28 @@ Value Interpreter::parse_expression(std::string expr,
         if (id == "null") return Value();
 
         auto valopt = env->get(id);
-        if (!valopt.has_value()) {
+
+        // Check if identifier exists in environment
+        bool found_in_env = valopt.has_value();
+        // Check if it's a class
+        bool is_class = interp->classes.find(id) != interp->classes.end();
+        // Check if it's a function
+        bool is_function = interp->functions.find(id) != interp->functions.end();
+
+        if (!found_in_env && !is_class && !is_function) {
           error("Name '" + id + "' is not defined");
         }
-        Value base_val = std::move(*valopt);
+
+        Value base_val;
+        if (found_in_env) {
+          base_val = std::move(*valopt);
+        } else if (is_function) {
+          // Mark as function for call check
+          base_val = Value::make_str("<function '" + id + "'>");
+        } else {
+          // Mark as class for instantiation check
+          base_val = Value::make_str("<class '" + id + "'>");
+        }
 
         while (true) {
           skip_space();
@@ -373,6 +398,40 @@ Value Interpreter::parse_expression(std::string expr,
               }
             }
 
+            // Check if it's a class instantiation
+            auto class_it = interp->classes.find(id);
+            if (class_it != interp->classes.end()) {
+              // Create new instance
+              const auto &class_def = class_it->second;
+              auto instance_env = std::make_shared<Environment>(class_def.class_env);
+              auto instance = Value::make_object(id, instance_env);
+
+              // Call __init__ if it exists
+              auto init_it = class_def.methods.find("__init__");
+              if (init_it != class_def.methods.end()) {
+                const auto &init_method = init_it->second;
+                // __init__ expects self as first parameter
+                if (init_method.params.size() != args.size() + 1) {
+                  error("__init__() expects " +
+                        std::to_string(init_method.params.size() - 1) +
+                        " arguments but got " + std::to_string(args.size()));
+                }
+                auto init_env = std::make_shared<Environment>(init_method.def_env);
+                init_env->set(init_method.params[0], instance);  // self
+                for (size_t i = 0; i < args.size(); ++i) {
+                  init_env->set(init_method.params[i + 1], args[i]);
+                }
+                try {
+                  interp->execute_block(init_method.block, init_env);
+                } catch (const std::string &) {
+                }
+              } else if (!args.empty()) {
+                error("Class '" + id + "' does not accept arguments");
+              }
+              base_val = instance;
+              continue;
+            }
+
             auto it = interp->functions.find(id);
             if (it == interp->functions.end()) {
               error("'" + id + "' is not callable");
@@ -412,6 +471,73 @@ Value Interpreter::parse_expression(std::string expr,
             continue;
           }
 
+          if (match('.')) {
+            if (!std::holds_alternative<std::shared_ptr<ObjectInstance>>(
+                    base_val.v)) {
+              error("Cannot access member on non-object");
+            }
+
+            skip_space();
+            size_t member_start = pos;
+            while (pos < s.size() && is_ident_continue(s[pos])) ++pos;
+            if (member_start == pos) error("Expected member name after '.'");
+            std::string member = s.substr(member_start, pos - member_start);
+
+            skip_space();
+            if (match('(')) {
+              // Method call
+              std::vector<Value> args;
+              if (!match(')')) {
+                while (true) {
+                  args.push_back(parse_expr());
+                  if (match(')')) break;
+                  if (!match(',')) error("Expected ',' or ')' in argument list");
+                }
+              }
+
+              auto obj_inst = std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
+              auto class_it = interp->classes.find(obj_inst->class_name);
+              if (class_it == interp->classes.end()) {
+                error("Class '" + obj_inst->class_name + "' not found");
+              }
+
+              auto method_it = class_it->second.methods.find(member);
+              if (method_it == class_it->second.methods.end()) {
+                error("Method '" + member + "' not found in class '" +
+                      obj_inst->class_name + "'");
+              }
+
+              const auto &method = method_it->second;
+              // Method expects self + other params
+              if (method.params.size() != args.size() + 1) {
+                error("Method '" + member + "' expects " +
+                      std::to_string(method.params.size() - 1) +
+                      " arguments but got " + std::to_string(args.size()));
+              }
+
+              auto method_env = std::make_shared<Environment>(method.def_env);
+              method_env->set(method.params[0], base_val);  // self
+              for (size_t i = 0; i < args.size(); ++i) {
+                method_env->set(method.params[i + 1], args[i]);
+              }
+              try {
+                interp->execute_block(method.block, method_env);
+              } catch (const std::string &) {
+              }
+              base_val = Value();
+              continue;
+            } else {
+              // Property access
+              auto obj_inst = std::get<std::shared_ptr<ObjectInstance>>(base_val.v);
+              auto prop_val = obj_inst->properties->get(member);
+              if (!prop_val.has_value()) {
+                error("Property '" + member + "' not found in object");
+              }
+              base_val = *prop_val;
+              continue;
+            }
+          }
+
           break;
         }
 
@@ -422,14 +548,23 @@ Value Interpreter::parse_expression(std::string expr,
     }
 
     Value parse_power() {
-      Value left = parse_primary();
+      Value left = parse_unary();
       while (match('^')) {
-        Value right = parse_primary();
+        Value right = parse_unary();
         double a = value_as_number(left);
         double b = value_as_number(right);
         left = Value::make_double(std::pow(a, b));
       }
       return left;
+    }
+
+    Value parse_unary() {
+      skip_space();
+      if (match('!')) {
+        Value operand = parse_unary();  // Recursive for !!x
+        return Value::make_bool(!value_is_true(operand));
+      }
+      return parse_primary();
     }
 
     Value parse_term() {
@@ -451,6 +586,123 @@ Value Interpreter::parse_expression(std::string expr,
             if (b == 0.0) error("Modulo by zero");
             left = Value::make_double(std::fmod(a, b));
           }
+          continue;
+        }
+        break;
+      }
+      return left;
+    }
+
+    Value parse_or() {
+      Value left = parse_and();
+      while (true) {
+        skip_space();
+        if (pos + 1 < s.size() && s[pos] == '|' && s[pos + 1] == '|') {
+          pos += 2;
+          // Short-circuit: if left is true, don't evaluate right
+          if (value_is_true(left)) return Value::make_bool(true);
+          Value right = parse_and();
+          left = Value::make_bool(value_is_true(right));
+        } else {
+          break;
+        }
+      }
+      return left;
+    }
+
+    Value parse_and() {
+      Value left = parse_comparison();
+      while (true) {
+        skip_space();
+        if (pos + 1 < s.size() && s[pos] == '&' && s[pos + 1] == '&') {
+          pos += 2;
+          // Short-circuit: if left is false, don't evaluate right
+          if (!value_is_true(left)) return Value::make_bool(false);
+          Value right = parse_comparison();
+          left = Value::make_bool(value_is_true(right));
+        } else {
+          break;
+        }
+      }
+      return left;
+    }
+
+    Value parse_comparison() {
+      Value left = parse_expr();
+      while (true) {
+        skip_space();
+        // Check two-character operators first
+        if (pos + 1 < s.size()) {
+          std::string two_char = s.substr(pos, 2);
+          if (two_char == "==") {
+            pos += 2;
+            Value right = parse_expr();
+            bool result = false;
+            if (std::holds_alternative<int64_t>(left.v) &&
+                std::holds_alternative<int64_t>(right.v)) {
+              result = std::get<int64_t>(left.v) == std::get<int64_t>(right.v);
+            } else if (std::holds_alternative<double>(left.v) ||
+                       std::holds_alternative<double>(right.v)) {
+              result = value_as_number(left) == value_as_number(right);
+            } else if (std::holds_alternative<std::string>(left.v) &&
+                       std::holds_alternative<std::string>(right.v)) {
+              result = std::get<std::string>(left.v) ==
+                       std::get<std::string>(right.v);
+            } else if (std::holds_alternative<bool>(left.v) &&
+                       std::holds_alternative<bool>(right.v)) {
+              result = std::get<bool>(left.v) == std::get<bool>(right.v);
+            } else {
+              result = false;
+            }
+            left = Value::make_bool(result);
+            continue;
+          } else if (two_char == "!=") {
+            pos += 2;
+            Value right = parse_expr();
+            bool result = true;
+            if (std::holds_alternative<int64_t>(left.v) &&
+                std::holds_alternative<int64_t>(right.v)) {
+              result = std::get<int64_t>(left.v) != std::get<int64_t>(right.v);
+            } else if (std::holds_alternative<double>(left.v) ||
+                       std::holds_alternative<double>(right.v)) {
+              result = value_as_number(left) != value_as_number(right);
+            } else if (std::holds_alternative<std::string>(left.v) &&
+                       std::holds_alternative<std::string>(right.v)) {
+              result = std::get<std::string>(left.v) !=
+                       std::get<std::string>(right.v);
+            } else if (std::holds_alternative<bool>(left.v) &&
+                       std::holds_alternative<bool>(right.v)) {
+              result = std::get<bool>(left.v) != std::get<bool>(right.v);
+            }
+            left = Value::make_bool(result);
+            continue;
+          } else if (two_char == "<=") {
+            pos += 2;
+            Value right = parse_expr();
+            bool result = value_as_number(left) <= value_as_number(right);
+            left = Value::make_bool(result);
+            continue;
+          } else if (two_char == ">=") {
+            pos += 2;
+            Value right = parse_expr();
+            bool result = value_as_number(left) >= value_as_number(right);
+            left = Value::make_bool(result);
+            continue;
+          }
+        }
+        // Check single-character operators
+        if (pos < s.size() && s[pos] == '<') {
+          pos++;
+          Value right = parse_expr();
+          bool result = value_as_number(left) < value_as_number(right);
+          left = Value::make_bool(result);
+          continue;
+        }
+        if (pos < s.size() && s[pos] == '>') {
+          pos++;
+          Value right = parse_expr();
+          bool result = value_as_number(left) > value_as_number(right);
+          left = Value::make_bool(result);
           continue;
         }
         break;
@@ -486,10 +738,11 @@ Value Interpreter::parse_expression(std::string expr,
       }
       return left;
     }
+
   };
 
   Parser p(expr, this, env);
-  return p.parse_expr();
+  return p.parse_or();
 }
 
 Value Interpreter::eval_expr(const std::string &expr,
@@ -527,6 +780,23 @@ void Interpreter::execute_block(const NodeList &nodes,
       } else if (auto asg = std::dynamic_pointer_cast<Assign>(node)) {
         Value val = eval_expr(asg->expr, env);
         env->set(asg->name, val);
+      } else if (auto masg = std::dynamic_pointer_cast<MemberAssign>(node)) {
+        // Get the object
+        auto obj_val_opt = env->get(masg->object);
+        if (!obj_val_opt.has_value()) {
+          throw std::runtime_error("Undefined object '" + masg->object + "'");
+        }
+        Value obj_val = *obj_val_opt;
+        if (!std::holds_alternative<std::shared_ptr<ObjectInstance>>(obj_val.v)) {
+          throw std::runtime_error("Cannot assign to member of non-object");
+        }
+
+        // Evaluate the right-hand side expression
+        Value rhs = eval_expr(masg->expr, env);
+
+        // Set the property on the object
+        auto obj_inst = std::get<std::shared_ptr<ObjectInstance>>(obj_val.v);
+        obj_inst->properties->set(masg->member, rhs);
       } else if (auto iff = std::dynamic_pointer_cast<If>(node)) {
         Value cond = eval_expr(iff->cond, env);
         if (value_is_true(cond)) {
@@ -616,7 +886,27 @@ void Interpreter::execute_block(const NodeList &nodes,
         auto nodes = parse(code);
         execute_block(nodes, env);
       } else if (auto c = std::dynamic_pointer_cast<ClassDef>(node)) {
-        env->set(c->name, Value::make_str("<class " + c->name + ">"));
+        // Process class definition
+        ClassDefEntry class_entry;
+        class_entry.name = c->name;
+        class_entry.class_env = env;  // capture the class definition environment
+
+        // Extract methods from class body
+        for (const auto &stmt : c->block) {
+          if (auto fd = std::dynamic_pointer_cast<FunctionDef>(stmt)) {
+            FunctionDefEntry method;
+            method.params = fd->params;
+            method.block = fd->block;
+            method.def_env = env;
+            class_entry.methods[fd->name] = std::move(method);
+          }
+        }
+
+        // Store the class
+        classes[c->name] = std::move(class_entry);
+
+        // Make the class available as a value for instantiation
+        env->set(c->name, Value::make_str("<class '" + c->name + "'>"));
       } else {
         throw std::runtime_error("Unknown AST node");
       }

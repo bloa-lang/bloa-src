@@ -23,7 +23,13 @@ class Interpreter {
     NodeList block;
     std::shared_ptr<Environment> def_env;
   };
+  struct ClassDefEntry {
+    std::string name;
+    std::unordered_map<std::string, FunctionDefEntry> methods;
+    std::shared_ptr<Environment> class_env;
+  };
   std::unordered_map<std::string, FunctionDefEntry> functions;
+  std::unordered_map<std::string, ClassDefEntry> classes;
   std::unordered_map<std::string, std::shared_ptr<Environment>> loaded_modules;
   std::string stdlib_path;
 

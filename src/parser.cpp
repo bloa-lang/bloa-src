@@ -1,6 +1,7 @@
 #include "bloa/parser.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -182,7 +183,8 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
     /* function */
     if (starts_with(line, "function ") && line.back() == '{') {
-      std::string header = line.substr(9, line.size() - 10);
+      std::string header_raw = line.substr(9, line.size() - 10);
+      std::string header = ltrim(rtrim(header_raw));
       auto pos = header.find('(');
       if (pos == std::string::npos)
         throw_parse_error(idx + 1,
@@ -208,7 +210,8 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
     /* class */
     if (starts_with(line, "class ") && line.back() == '{') {
-      std::string name = line.substr(6, line.size() - 7);
+      std::string name_raw = line.substr(6, line.size() - 7);
+      std::string name = ltrim(rtrim(name_raw));
       auto res = parse_block(lines, idx + 1, base_indent);
       nodes.push_back(std::make_shared<ClassDef>(name, res.first));
       idx = res.second;
@@ -223,6 +226,30 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       std::string right = ltrim(rtrim(line.substr(pos + 1)));
       if (!right.empty() && right.back() == ';') right.pop_back();
 
+      // Check for member assignment (obj.field = value)
+      size_t dot_pos = left.find('.');
+      if (dot_pos != std::string::npos) {
+        std::string obj = ltrim(rtrim(left.substr(0, dot_pos)));
+        std::string member = ltrim(rtrim(left.substr(dot_pos + 1)));
+
+        // Validate object name
+        bool obj_ok = !obj.empty() && (isalpha(obj[0]) || obj[0] == '_');
+        for (char c : obj)
+          if (!(isalnum(c) || c == '_')) obj_ok = false;
+
+        // Validate member name
+        bool mem_ok = !member.empty() && (isalpha(member[0]) || member[0] == '_');
+        for (char c : member)
+          if (!(isalnum(c) || c == '_')) mem_ok = false;
+
+        if (obj_ok && mem_ok) {
+          nodes.push_back(std::make_shared<MemberAssign>(obj, member, right));
+          idx++;
+          continue;
+        }
+      }
+
+      // Simple assignment (name = value)
       if (!left.empty() && (isalpha(left[0]) || left[0] == '_')) {
         bool ok = true;
         for (char c : left)
