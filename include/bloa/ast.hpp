@@ -1,9 +1,9 @@
 #pragma once
 #include <memory>
+#include <optional>
 #include <string>
 #include <variant>
 #include <vector>
-#include <optional>
 
 namespace bloa {
 
@@ -35,8 +35,9 @@ struct If : Node {
   NodeList then_block;
   NodeList else_block;
   If(std::string c, NodeList t, NodeList e)
-      : cond(std::move(c)), then_block(std::move(t)), else_block(std::move(e)) {
-  }
+      : cond(std::move(c)),
+        then_block(std::move(t)),
+        else_block(std::move(e)) {}
 };
 struct Repeat : Node {
   std::string times_expr;
@@ -102,4 +103,4 @@ struct TryExcept : Node {
       : try_block(std::move(t)), except_block(std::move(e)) {}
 };
 
-} // namespace bloa
+}  // namespace bloa

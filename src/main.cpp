@@ -1,7 +1,8 @@
-#include "bloa/interpreter.hpp"
 #include <fstream>
 #include <iostream>
 #include <sstream>
+
+#include "bloa/interpreter.hpp"
 
 #define BLOA_VERSION "0.2.0-alpha"
 
@@ -28,10 +29,8 @@ void start_repl() {
 
   while (true) {
     std::cout << "bloa> ";
-    if (!std::getline(std::cin, line))
-      break;
-    if (line == "exit")
-      break;
+    if (!std::getline(std::cin, line)) break;
+    if (line == "exit") break;
 
     try {
       interp.run(line, "<repl>");

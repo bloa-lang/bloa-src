@@ -1,4 +1,5 @@
 #include "bloa/parser.hpp"
+
 #include <algorithm>
 #include <sstream>
 #include <stdexcept>
@@ -30,15 +31,13 @@ int indent_level(const std::string &line) {
 
 static int first_nonspace_col(const std::string &s) {
   size_t pos = s.find_first_not_of(" \t\r\n");
-  if (pos == std::string::npos)
-    return 1;
+  if (pos == std::string::npos) return 1;
   return (int)pos + 1;
 }
 
 static void throw_parse_error(int line_idx, const std::string &msg,
-                             const std::string &raw_line, int col = -1) {
-  if (col == -1)
-    col = first_nonspace_col(raw_line);
+                              const std::string &raw_line, int col = -1) {
+  if (col == -1) col = first_nonspace_col(raw_line);
   std::ostringstream oss;
   oss << "Parse error at line " << line_idx << ":" << col << ": " << msg
       << "\n  " << raw_line;
@@ -51,15 +50,13 @@ static bool starts_with(const std::string &s, const std::string &p) {
 
 static std::string ltrim(const std::string &s) {
   size_t pos = s.find_first_not_of(" \t\r\n");
-  if (pos == std::string::npos)
-    return "";
+  if (pos == std::string::npos) return "";
   return s.substr(pos);
 }
 
 static std::string rtrim(const std::string &s) {
   size_t pos = s.find_last_not_of(" \t\r\n");
-  if (pos == std::string::npos)
-    return "";
+  if (pos == std::string::npos) return "";
   return s.substr(0, pos + 1);
 }
 
@@ -78,8 +75,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     }
 
     int indent = indent_level(raw_line);
-    if (indent < base_indent)
-      break;
+    if (indent < base_indent) break;
     if (indent > base_indent)
       throw_parse_error(idx + 1, "Unexpected indent", raw_line, indent + 1);
 
@@ -119,8 +115,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     /* require */
     if (starts_with(line, "require ")) {
       std::string path = line.substr(8);
-      if (!path.empty() && path.back() == ';')
-        path.pop_back();
+      if (!path.empty() && path.back() == ';') path.pop_back();
       nodes.push_back(std::make_shared<Require>(path));
       idx++;
       continue;
@@ -134,8 +129,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     }
     if (starts_with(line, "return ")) {
       std::string expr = line.substr(7);
-      if (!expr.empty() && expr.back() == ';')
-        expr.pop_back();
+      if (!expr.empty() && expr.back() == ';') expr.pop_back();
       nodes.push_back(std::make_shared<Return>(expr));
       idx++;
       continue;
@@ -203,8 +197,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       std::string tok;
       while (std::getline(iss, tok, ',')) {
         tok = ltrim(rtrim(tok));
-        if (!tok.empty())
-          params.push_back(tok);
+        if (!tok.empty()) params.push_back(tok);
       }
 
       auto res = parse_block(lines, idx + 1, base_indent);
@@ -228,14 +221,12 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       auto pos = line.find('=');
       std::string left = ltrim(rtrim(line.substr(0, pos)));
       std::string right = ltrim(rtrim(line.substr(pos + 1)));
-      if (!right.empty() && right.back() == ';')
-        right.pop_back();
+      if (!right.empty() && right.back() == ';') right.pop_back();
 
       if (!left.empty() && (isalpha(left[0]) || left[0] == '_')) {
         bool ok = true;
         for (char c : left)
-          if (!(isalnum(c) || c == '_'))
-            ok = false;
+          if (!(isalnum(c) || c == '_')) ok = false;
         if (ok) {
           nodes.push_back(std::make_shared<Assign>(left, right));
           idx++;
@@ -252,8 +243,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
       bool ok = !name.empty();
       for (char c : name)
-        if (!(isalnum(c) || c == '_'))
-          ok = false;
+        if (!(isalnum(c) || c == '_')) ok = false;
 
       if (ok) {
         std::string args_raw = call.substr(pos + 1, call.size() - pos - 2);
@@ -262,8 +252,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
         std::string tok;
         while (std::getline(iss, tok, ',')) {
           tok = ltrim(rtrim(tok));
-          if (!tok.empty())
-            args.push_back(tok);
+          if (!tok.empty()) args.push_back(tok);
         }
         nodes.push_back(std::make_shared<FunctionCall>(name, args));
         idx++;
@@ -278,4 +267,4 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
   return {nodes, idx};
 }
 
-} // namespace bloa
+}  // namespace bloa

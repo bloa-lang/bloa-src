@@ -1,21 +1,22 @@
 #pragma once
-#include "bloa/ast.hpp"
-#include "bloa/env.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>
 
+#include "bloa/ast.hpp"
+#include "bloa/env.hpp"
+
 namespace bloa {
 
 class Interpreter {
-public:
+ public:
   Interpreter(std::string stdlib_path = "", const std::string &source = "");
   NodeList parse(const std::string &source);
   void run(const std::string &code, const std::string &filename = "<string>");
   Value eval_expr(const std::string &expr, std::shared_ptr<Environment> env);
   void execute_block(const NodeList &nodes, std::shared_ptr<Environment> env);
 
-private:
+ private:
   std::shared_ptr<Environment> global_env;
   struct FunctionDefEntry {
     std::vector<std::string> params;
@@ -33,4 +34,4 @@ private:
   Value parse_expression(std::string expr, std::shared_ptr<Environment> env);
 };
 
-} // namespace bloa
+}  // namespace bloa

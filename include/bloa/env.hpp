@@ -1,7 +1,7 @@
 #pragma once
-#include <stdexcept>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <variant>
@@ -46,14 +46,10 @@ struct Value {
   }
 
   bool is_true() const {
-    if (std::holds_alternative<std::monostate>(v))
-      return false;
-    if (std::holds_alternative<bool>(v))
-      return std::get<bool>(v);
-    if (std::holds_alternative<int64_t>(v))
-      return std::get<int64_t>(v) != 0;
-    if (std::holds_alternative<double>(v))
-      return std::get<double>(v) != 0.0;
+    if (std::holds_alternative<std::monostate>(v)) return false;
+    if (std::holds_alternative<bool>(v)) return std::get<bool>(v);
+    if (std::holds_alternative<int64_t>(v)) return std::get<int64_t>(v) != 0;
+    if (std::holds_alternative<double>(v)) return std::get<double>(v) != 0.0;
     if (std::holds_alternative<std::string>(v))
       return !std::get<std::string>(v).empty();
     if (std::holds_alternative<std::vector<Value>>(v))
@@ -64,10 +60,8 @@ struct Value {
   std::string to_string() const;
 
   double as_number() const {
-    if (std::holds_alternative<int64_t>(v))
-      return (double)std::get<int64_t>(v);
-    if (std::holds_alternative<double>(v))
-      return std::get<double>(v);
+    if (std::holds_alternative<int64_t>(v)) return (double)std::get<int64_t>(v);
+    if (std::holds_alternative<double>(v)) return std::get<double>(v);
     throw std::runtime_error("Value is not a number");
   }
 
@@ -89,8 +83,8 @@ struct Environment {
   void set(const std::string &name, Value val);
   std::shared_ptr<Environment> parent;
 
-private:
+ private:
   std::unordered_map<std::string, Variable> vars;
 };
 
-} // namespace bloa
+}  // namespace bloa

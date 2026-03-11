@@ -1,5 +1,5 @@
 #include "bloa/interpreter.hpp"
-#include "bloa/parser.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -9,6 +9,8 @@
 #include <sstream>
 #include <stdexcept>
 
+#include "bloa/parser.hpp"
+
 namespace fs = std::filesystem;
 
 namespace bloa {
@@ -16,8 +18,7 @@ namespace bloa {
 using NodePtr = std::shared_ptr<Node>;
 
 static std::string value_to_string(const Value &v) {
-  if (std::holds_alternative<std::monostate>(v.v))
-    return "None";
+  if (std::holds_alternative<std::monostate>(v.v)) return "None";
   if (std::holds_alternative<int64_t>(v.v))
     return std::to_string(std::get<int64_t>(v.v));
   if (std::holds_alternative<double>(v.v)) {
@@ -35,8 +36,7 @@ static std::string value_to_string(const Value &v) {
     std::string out = "[";
     const auto &list = std::get<std::vector<Value>>(v.v);
     for (size_t i = 0; i < list.size(); ++i) {
-      if (i > 0)
-        out += ", ";
+      if (i > 0) out += ", ";
       out += value_to_string(list[i]);
     }
     out += "]";
@@ -52,8 +52,7 @@ static bool is_list_value(const Value &v) {
 static double value_as_number(const Value &v) {
   if (std::holds_alternative<int64_t>(v.v))
     return static_cast<double>(std::get<int64_t>(v.v));
-  if (std::holds_alternative<double>(v.v))
-    return std::get<double>(v.v);
+  if (std::holds_alternative<double>(v.v)) return std::get<double>(v.v);
   if (std::holds_alternative<std::string>(v.v)) {
     const std::string &s = std::get<std::string>(v.v);
     try {
@@ -66,14 +65,10 @@ static double value_as_number(const Value &v) {
 }
 
 static bool value_is_true(const Value &v) {
-  if (std::holds_alternative<std::monostate>(v.v))
-    return false;
-  if (std::holds_alternative<bool>(v.v))
-    return std::get<bool>(v.v);
-  if (std::holds_alternative<int64_t>(v.v))
-    return std::get<int64_t>(v.v) != 0;
-  if (std::holds_alternative<double>(v.v))
-    return std::get<double>(v.v) != 0.0;
+  if (std::holds_alternative<std::monostate>(v.v)) return false;
+  if (std::holds_alternative<bool>(v.v)) return std::get<bool>(v.v);
+  if (std::holds_alternative<int64_t>(v.v)) return std::get<int64_t>(v.v) != 0;
+  if (std::holds_alternative<double>(v.v)) return std::get<double>(v.v) != 0.0;
   if (std::holds_alternative<std::string>(v.v))
     return !std::get<std::string>(v.v).empty();
   if (std::holds_alternative<std::vector<Value>>(v.v))
@@ -90,10 +85,8 @@ Environment::Environment(std::shared_ptr<Environment> parent_)
 
 std::optional<Value> Environment::get(const std::string &name) const {
   auto it = vars.find(name);
-  if (it != vars.end())
-    return it->second.value;
-  if (parent)
-    return parent->get(name);
+  if (it != vars.end()) return it->second.value;
+  if (parent) return parent->get(name);
   return std::nullopt;
 }
 
@@ -112,9 +105,11 @@ void Environment::set(const std::string &name, Value val) {
 }
 
 Interpreter::Interpreter(std::string stdlib_path_, const std::string &source)
-    : global_env(std::make_shared<Environment>(nullptr)), functions(),
-      loaded_modules(), stdlib_path(std::move(stdlib_path_)), s(source) {
-
+    : global_env(std::make_shared<Environment>(nullptr)),
+      functions(),
+      loaded_modules(),
+      stdlib_path(std::move(stdlib_path_)),
+      s(source) {
   global_env->set("null", Value());
   global_env->set("true", Value::make_bool(true));
   global_env->set("false", Value::make_bool(false));
@@ -146,8 +141,7 @@ void Interpreter::run(const std::string &code, const std::string &filename) {
 
 static std::string trim(const std::string &s) {
   size_t a = s.find_first_not_of(" \t\r\n");
-  if (a == std::string::npos)
-    return "";
+  if (a == std::string::npos) return "";
   size_t b = s.find_last_not_of(" \t\r\n");
   return s.substr(a, (b - a + 1));
 }
@@ -192,26 +186,21 @@ Value Interpreter::parse_expression(std::string expr,
 
     Value parse_primary() {
       skip_space();
-      if (pos >= s.size())
-        error("Unexpected end of expression");
+      if (pos >= s.size()) error("Unexpected end of expression");
 
       if (match('(')) {
         Value v = parse_expr();
-        if (!match(')'))
-          error("Expected ')'");
+        if (!match(')')) error("Expected ')'");
         return v;
       }
 
       if (match('[')) {
         std::vector<Value> elems;
-        if (match(']'))
-          return Value::make_list(elems);
+        if (match(']')) return Value::make_list(elems);
         while (true) {
           elems.push_back(parse_expr());
-          if (match(']'))
-            break;
-          if (!match(','))
-            error("Expected ',' or ']' in list literal");
+          if (match(']')) break;
+          if (!match(',')) error("Expected ',' or ']' in list literal");
         }
         return Value::make_list(elems);
       }
@@ -223,36 +212,35 @@ Value Interpreter::parse_expression(std::string expr,
           if (s[pos] == '\\' && pos + 1 < s.size()) {
             ++pos;
             switch (s[pos]) {
-            case 'n':
-              out.push_back('\n');
-              break;
-            case 't':
-              out.push_back('\t');
-              break;
-            case 'r':
-              out.push_back('\r');
-              break;
-            case '\\':
-              out.push_back('\\');
-              break;
-            case '\'':
-              out.push_back('\'');
-              break;
-            case '\"':
-              out.push_back('\"');
-              break;
-            default:
-              out.push_back('\\');
-              out.push_back(s[pos]);
-              break;
+              case 'n':
+                out.push_back('\n');
+                break;
+              case 't':
+                out.push_back('\t');
+                break;
+              case 'r':
+                out.push_back('\r');
+                break;
+              case '\\':
+                out.push_back('\\');
+                break;
+              case '\'':
+                out.push_back('\'');
+                break;
+              case '\"':
+                out.push_back('\"');
+                break;
+              default:
+                out.push_back('\\');
+                out.push_back(s[pos]);
+                break;
             }
             ++pos;
           } else {
             out.push_back(s[pos++]);
           }
         }
-        if (pos >= s.size())
-          error("Unterminated string literal");
+        if (pos >= s.size()) error("Unterminated string literal");
         ++pos;
         return Value::make_str(out);
       }
@@ -261,8 +249,7 @@ Value Interpreter::parse_expression(std::string expr,
           (s[pos] == '-' && pos + 1 < s.size() &&
            std::isdigit(static_cast<unsigned char>(s[pos + 1])))) {
         size_t start = pos;
-        if (s[pos] == '-')
-          ++pos;
+        if (s[pos] == '-') ++pos;
         while (pos < s.size() &&
                std::isdigit(static_cast<unsigned char>(s[pos])))
           ++pos;
@@ -296,16 +283,12 @@ Value Interpreter::parse_expression(std::string expr,
       if (is_ident_start(s[pos])) {
         size_t start = pos;
         ++pos;
-        while (pos < s.size() && is_ident_continue(s[pos]))
-          ++pos;
+        while (pos < s.size() && is_ident_continue(s[pos])) ++pos;
         std::string id = s.substr(start, pos - start);
 
-        if (id == "true")
-          return Value::make_bool(true);
-        if (id == "false")
-          return Value::make_bool(false);
-        if (id == "null")
-          return Value();
+        if (id == "true") return Value::make_bool(true);
+        if (id == "false") return Value::make_bool(false);
+        if (id == "null") return Value();
 
         auto valopt = env->get(id);
         if (!valopt.has_value()) {
@@ -321,10 +304,8 @@ Value Interpreter::parse_expression(std::string expr,
             if (!match(')')) {
               while (true) {
                 args.push_back(parse_expr());
-                if (match(')'))
-                  break;
-                if (!match(','))
-                  error("Expected ',' or ')' in argument list");
+                if (match(')')) break;
+                if (!match(',')) error("Expected ',' or ')' in argument list");
               }
             }
 
@@ -332,8 +313,7 @@ Value Interpreter::parse_expression(std::string expr,
               std::string marker = std::get<std::string>(base_val.v);
               if (marker == "__builtin_print") {
                 for (size_t i = 0; i < args.size(); ++i) {
-                  if (i > 0)
-                    std::cout << ' ';
+                  if (i > 0) std::cout << ' ';
                   std::cout << value_to_string(args[i]);
                 }
                 std::cout << '\n';
@@ -341,8 +321,7 @@ Value Interpreter::parse_expression(std::string expr,
                 continue;
               }
               if (marker == "__builtin_range") {
-                if (args.size() != 2)
-                  error("range() requires 2 arguments");
+                if (args.size() != 2) error("range() requires 2 arguments");
                 int64_t start = static_cast<int64_t>(value_as_number(args[0]));
                 int64_t stop = static_cast<int64_t>(value_as_number(args[1]));
                 std::vector<Value> list;
@@ -352,8 +331,7 @@ Value Interpreter::parse_expression(std::string expr,
                 continue;
               }
               if (marker == "__builtin_len") {
-                if (args.size() != 1)
-                  error("len() requires 1 argument");
+                if (args.size() != 1) error("len() requires 1 argument");
                 const auto &arg = args[0];
                 if (std::holds_alternative<std::string>(arg.v)) {
                   base_val = Value::make_int(static_cast<int64_t>(
@@ -367,21 +345,18 @@ Value Interpreter::parse_expression(std::string expr,
                 continue;
               }
               if (marker == "__builtin_str") {
-                if (args.size() != 1)
-                  error("str() requires 1 argument");
+                if (args.size() != 1) error("str() requires 1 argument");
                 base_val = Value::make_str(value_to_string(args[0]));
                 continue;
               }
               if (marker == "__builtin_int") {
-                if (args.size() != 1)
-                  error("int() requires 1 argument");
+                if (args.size() != 1) error("int() requires 1 argument");
                 base_val = Value::make_int(
                     static_cast<int64_t>(value_as_number(args[0])));
                 continue;
               }
               if (marker == "__builtin_float") {
-                if (args.size() != 1)
-                  error("float() requires 1 argument");
+                if (args.size() != 1) error("float() requires 1 argument");
                 base_val = Value::make_double(value_as_number(args[0]));
                 continue;
               }
@@ -426,8 +401,7 @@ Value Interpreter::parse_expression(std::string expr,
               error("Object is not subscriptable (not a list)");
             }
             Value idx_val = parse_expr();
-            if (!match(']'))
-              error("Expected ']'");
+            if (!match(']')) error("Expected ']'");
             int64_t idx = static_cast<int64_t>(value_as_number(idx_val));
             const auto &list = as_list(base_val);
             if (idx < 0 || idx >= static_cast<int64_t>(list.size())) {
@@ -471,12 +445,10 @@ Value Interpreter::parse_expression(std::string expr,
           if (op == '*') {
             left = Value::make_double(a * b);
           } else if (op == '/') {
-            if (b == 0.0)
-              error("Division by zero");
+            if (b == 0.0) error("Division by zero");
             left = Value::make_double(a / b);
           } else if (op == '%') {
-            if (b == 0.0)
-              error("Modulo by zero");
+            if (b == 0.0) error("Modulo by zero");
             left = Value::make_double(std::fmod(a, b));
           }
           continue;
@@ -582,8 +554,7 @@ void Interpreter::execute_block(const NodeList &nodes,
         std::ostringstream fake_expr;
         fake_expr << fc->name << '(';
         for (size_t i = 0; i < fc->args.size(); ++i) {
-          if (i > 0)
-            fake_expr << ", ";
+          if (i > 0) fake_expr << ", ";
           fake_expr << fc->args[i];
         }
         fake_expr << ')';
@@ -614,8 +585,7 @@ void Interpreter::execute_block(const NodeList &nodes,
       } else if (auto wh = std::dynamic_pointer_cast<While>(node)) {
         while (true) {
           Value cond = eval_expr(wh->cond, env);
-          if (!value_is_true(cond))
-            break;
+          if (!value_is_true(cond)) break;
           execute_block(wh->block, std::make_shared<Environment>(env));
         }
       } else if (auto fin = std::dynamic_pointer_cast<ForIn>(node)) {
@@ -641,8 +611,7 @@ void Interpreter::execute_block(const NodeList &nodes,
         }
       } else if (auto r = std::dynamic_pointer_cast<Require>(node)) {
         std::ifstream ifs(r->path);
-        if (!ifs)
-          throw std::runtime_error("Require failed: " + r->path);
+        if (!ifs) throw std::runtime_error("Require failed: " + r->path);
         std::string code((std::istreambuf_iterator<char>(ifs)), {});
         auto nodes = parse(code);
         execute_block(nodes, env);
@@ -657,4 +626,4 @@ void Interpreter::execute_block(const NodeList &nodes,
   }
 }
 
-} // namespace bloa
+}  // namespace bloa
