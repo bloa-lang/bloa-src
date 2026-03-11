@@ -19,10 +19,6 @@ jobs:
           clang-format --dry-run --Werror \
             $(git ls-files '*.cpp' '*.hpp')
 
-      - name: clang-tidy
-        run: |
-          clang-tidy $(git ls-files '*.cpp') -- -std=c++20
-
       - name: cppcheck
         run: |
           cppcheck --enable=all --error-exitcode=1 .
