@@ -62,18 +62,6 @@ struct Value {
     return val;
   }
 
-  bool is_true() const {
-    if (std::holds_alternative<std::monostate>(v)) return false;
-    if (std::holds_alternative<bool>(v)) return std::get<bool>(v);
-    if (std::holds_alternative<int64_t>(v)) return std::get<int64_t>(v) != 0;
-    if (std::holds_alternative<double>(v)) return std::get<double>(v) != 0.0;
-    if (std::holds_alternative<std::string>(v))
-      return !std::get<std::string>(v).empty();
-    if (std::holds_alternative<std::vector<Value>>(v))
-      return !std::get<std::vector<Value>>(v).empty();
-    return false;
-  }
-
   std::string to_string() const;
 
   double as_number() const {

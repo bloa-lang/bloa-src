@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <random>
 #include <sstream>
 
@@ -265,9 +266,9 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("list_dir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     std::vector<Value> list;
-    for (const auto &entry : fs::directory_iterator(path)) {
-      list.push_back(Value::make_str(entry.path().string()));
-    }
+    std::transform(fs::directory_iterator(path), fs::directory_iterator{}, std::back_inserter(list), [](const auto& entry) {
+      return Value::make_str(entry.path().string());
+    });
     return Value::make_list(list);
   }
   if (marker == "__builtin_mkdir") {
