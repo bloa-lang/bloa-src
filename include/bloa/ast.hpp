@@ -85,9 +85,10 @@ struct MemberAssign : Node {
 
 struct ClassDef : Node {
   std::string name;
+  std::optional<std::string> parent;
   NodeList block;
-  ClassDef(std::string n, NodeList b)
-      : name(std::move(n)), block(std::move(b)) {}
+  ClassDef(std::string n, std::optional<std::string> p, NodeList b)
+      : name(std::move(n)), parent(std::move(p)), block(std::move(b)) {}
 };
 
 struct While : Node {

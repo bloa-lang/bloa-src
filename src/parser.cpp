@@ -210,10 +210,21 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
     /* class */
     if (starts_with(line, "class ") && line.back() == '{') {
-      std::string name_raw = line.substr(6, line.size() - 7);
-      std::string name = ltrim(rtrim(name_raw));
+      std::string header_raw = line.substr(6, line.size() - 7);
+      std::string header = ltrim(rtrim(header_raw));
+      std::optional<std::string> parent;
+      std::string name;
+
+      auto extends_pos = header.find(" extends ");
+      if (extends_pos != std::string::npos) {
+        name = ltrim(rtrim(header.substr(0, extends_pos)));
+        parent = ltrim(rtrim(header.substr(extends_pos + 9)));
+      } else {
+        name = header;
+      }
+
       auto res = parse_block(lines, idx + 1, base_indent);
-      nodes.push_back(std::make_shared<ClassDef>(name, res.first));
+      nodes.push_back(std::make_shared<ClassDef>(name, parent, res.first));
       idx = res.second;
       continue;
     }

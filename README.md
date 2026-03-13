@@ -2,6 +2,115 @@
 
 A minimalist interpreter for the **bloa** scripting language.
 
+## Features
+
+- Variables and expressions (arithmetic, logic, comparison)
+- Control flow: if/else, while, for-in, repeat
+- Functions with parameters
+- Classes with methods and inheritance (`extends`)
+- Modules: `use` for importing, `require` for including files
+- Built-in functions: print, range, len, str, int, float, append
+- Lists, strings, numbers, booleans
+- I/O: say (print), ask (input)
+- Exception handling: try/except
+- Standard library in `stdlib/` (math, io, string)
+
+## Syntax Examples
+
+### Variables and Expressions
+```
+x = 42
+y = x + 10
+say "Result: " + str(y)
+```
+
+### Functions
+```
+function greet(name) {
+  say "Hello, " + name
+}
+
+greet("World")
+```
+
+### Classes and Inheritance
+```
+class Animal {
+  function speak(self) {
+    say "Animal sound"
+  }
+}
+
+class Dog extends Animal {
+  function speak(self) {
+    say "Woof!"
+  }
+}
+
+d = Dog()
+d.speak()
+```
+
+### Modules
+```
+use math;
+say "Square root of 4: " + str(sqrt(4))
+```
+
+## Standard Library
+
+The standard library is built-in and automatically available, providing functions without requiring external files:
+
+### Math Functions
+- `sqrt(x)`: Square root
+- `pow(base, exp)`: Power
+- `sin(x)`, `cos(x)`, `tan(x)`: Trigonometric functions
+- `log(x)`, `exp(x)`: Logarithm and exponential
+- `abs(x)`: Absolute value
+- `floor(x)`, `ceil(x)`, `round(x)`: Rounding functions
+- `pi()`, `e()`: Mathematical constants
+
+### I/O Functions
+- `read_file(path)`: Read file content as string
+- `write_file(path, content)`: Write string to file
+- `exists(path)`: Check if file/directory exists
+- `list_dir(path)`: List directory contents as list of strings
+- `mkdir(path)`: Create directory
+- `rmdir(path)`: Remove directory
+- `remove(path)`: Remove file
+- `copy_file(from, to)`: Copy file
+- `move(from, to)`: Move/rename file
+- `file_size(path)`: Get file size in bytes
+- `is_dir(path)`: Check if path is a directory
+
+### String Functions
+- `len(s)`: String length (built-in)
+- `split(s, delim)`: Split string by delimiter
+- `join(list, sep)`: Join list of strings with separator
+- `substr(s, start, len?)`: Substring
+- `find(s, sub)`: Find substring position
+- `replace(s, old, new)`: Replace all occurrences
+- `to_upper(s)`, `to_lower(s)`: Case conversion
+- `trim(s)`: Remove leading/trailing whitespace
+- `starts_with(s, prefix)`: Check if string starts with prefix
+- `ends_with(s, suffix)`: Check if string ends with suffix
+- `contains(s, sub)`: Check if string contains substring
+- `reverse(s)`: Reverse string
+- `repeat(s, n)`: Repeat string n times
+
+### Utility Functions
+- `random_int(max)` or `random_int(min, max)`: Random integer
+- `random_float(max)` or `random_float(min, max)`: Random float
+- `now()`: Current timestamp in milliseconds
+
+All functions are available globally.
+
+```bloa
+say "Square root of 16: " + str(sqrt(16))
+say "Pi value: " + str(pi())
+say "Uppercase: " + to_upper("hello")
+```
+
 ## Building
 
 ```sh

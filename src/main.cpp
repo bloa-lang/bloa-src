@@ -24,7 +24,7 @@ void start_repl() {
   std::cout << "BLOA " << BLOA_VERSION << " Interactive Mode\n";
   std::cout << "Type 'exit' or press Ctrl+D to quit.\n";
 
-  bloa::Interpreter interp(".");
+  bloa::Interpreter interp("");
   std::string line;
 
   while (true) {
@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 
   std::string src((std::istreambuf_iterator<char>(ifs)),
                   std::istreambuf_iterator<char>());
-  bloa::Interpreter interp(".");
+  bloa::Interpreter interp("");
 
   try {
     interp.run(src, arg);

@@ -11,4 +11,5 @@ add_executable(bloa
     src/main.cpp
     src/parser.cpp
     src/interpreter.cpp
+    src/stdlib.cpp
 )

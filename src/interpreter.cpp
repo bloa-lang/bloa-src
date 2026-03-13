@@ -1,11 +1,14 @@
 #include "bloa/interpreter.hpp"
+#include "bloa/stdlib.hpp"
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 
@@ -128,6 +131,30 @@ Interpreter::Interpreter(std::string stdlib_path_, const std::string &source)
   global_env->set("int", Value::make_str("__builtin_int"));
   global_env->set("float", Value::make_str("__builtin_float"));
   global_env->set("append", Value::make_str("__builtin_append"));
+
+  // Register standard library
+  register_stdlib(global_env);
+
+  // Load default standard library modules
+  /*
+  std::vector<std::string> default_libs = {"math", "io", "string"};
+  for (const auto &lib : default_libs) {
+    try {
+      fs::path p = stdlib_path.empty()
+                       ? (fs::path(lib) += ".bloa")
+                       : (fs::path(stdlib_path) / lib) += ".bloa";
+      if (fs::exists(p)) {
+        std::ifstream ifs(p);
+        std::string code((std::istreambuf_iterator<char>(ifs)),
+                         std::istreambuf_iterator<char>());
+        auto nodes = parse(code);
+        execute_block(nodes, global_env);
+      }
+    } catch (...) {
+      // Ignore errors for missing stdlib
+    }
+  }
+  */
 }
 
 NodeList Interpreter::parse(const std::string &source) {
@@ -337,64 +364,8 @@ Value Interpreter::parse_expression(std::string expr,
 
             if (std::holds_alternative<std::string>(base_val.v)) {
               std::string marker = std::get<std::string>(base_val.v);
-              if (marker == "__builtin_print") {
-                for (size_t i = 0; i < args.size(); ++i) {
-                  if (i > 0) std::cout << ' ';
-                  std::cout << value_to_string(args[i]);
-                }
-                std::cout << '\n';
-                base_val = Value();
-                continue;
-              }
-              if (marker == "__builtin_range") {
-                if (args.size() != 2) error("range() requires 2 arguments");
-                int64_t start = static_cast<int64_t>(value_as_number(args[0]));
-                int64_t stop = static_cast<int64_t>(value_as_number(args[1]));
-                std::vector<Value> list;
-                for (int64_t i = start; i < stop; ++i)
-                  list.push_back(Value::make_int(i));
-                base_val = Value::make_list(list);
-                continue;
-              }
-              if (marker == "__builtin_len") {
-                if (args.size() != 1) error("len() requires 1 argument");
-                const auto &arg = args[0];
-                if (std::holds_alternative<std::string>(arg.v)) {
-                  base_val = Value::make_int(static_cast<int64_t>(
-                      std::get<std::string>(arg.v).size()));
-                } else if (is_list_value(arg)) {
-                  base_val = Value::make_int(
-                      static_cast<int64_t>(as_list(arg).size()));
-                } else {
-                  error("len() argument must be string or list");
-                }
-                continue;
-              }
-              if (marker == "__builtin_str") {
-                if (args.size() != 1) error("str() requires 1 argument");
-                base_val = Value::make_str(value_to_string(args[0]));
-                continue;
-              }
-              if (marker == "__builtin_int") {
-                if (args.size() != 1) error("int() requires 1 argument");
-                base_val = Value::make_int(
-                    static_cast<int64_t>(value_as_number(args[0])));
-                continue;
-              }
-              if (marker == "__builtin_float") {
-                if (args.size() != 1) error("float() requires 1 argument");
-                base_val = Value::make_double(value_as_number(args[0]));
-                continue;
-              }
-              if (marker == "__builtin_append") {
-                if (args.size() != 2)
-                  error("append() requires 2 arguments (list, value)");
-                if (!is_list_value(args[0]))
-                  error("First argument to append() must be a list");
-                auto list = as_list(args[0]);
-                std::vector<Value> new_list = list;
-                new_list.push_back(args[1]);
-                base_val = Value::make_list(std::move(new_list));
+              if (marker.starts_with("__builtin_")) {
+                base_val = handle_builtin(marker, args);
                 continue;
               }
             }
@@ -408,24 +379,37 @@ Value Interpreter::parse_expression(std::string expr,
                   std::make_shared<Environment>(class_def.class_env);
               auto instance = Value::make_object(id, instance_env);
 
-              // Call __init__ if it exists
-              auto init_it = class_def.methods.find("__init__");
-              if (init_it != class_def.methods.end()) {
-                const auto &init_method = init_it->second;
-                // __init__ expects self as first parameter
-                if (init_method.params.size() != args.size() + 1) {
+              // Call __init__ if it exists (with inheritance)
+              const FunctionDefEntry *init_method = nullptr;
+              std::string current_class = id;
+              while (!current_class.empty()) {
+                auto cls_it = interp->classes.find(current_class);
+                if (cls_it != interp->classes.end()) {
+                  auto meth_it = cls_it->second.methods.find("__init__");
+                  if (meth_it != cls_it->second.methods.end()) {
+                    init_method = &meth_it->second;
+                    break;
+                  }
+                  current_class = cls_it->second.parent.value_or("");
+                } else {
+                  break;
+                }
+              }
+
+              if (init_method) {
+                if (init_method->params.size() != args.size() + 1) {
                   error("__init__() expects " +
-                        std::to_string(init_method.params.size() - 1) +
+                        std::to_string(static_cast<int>(init_method->params.size()) - 1) +
                         " arguments but got " + std::to_string(args.size()));
                 }
                 auto init_env =
-                    std::make_shared<Environment>(init_method.def_env);
-                init_env->set(init_method.params[0], instance);  // self
+                    std::make_shared<Environment>(init_method->def_env);
+                init_env->set(init_method->params[0], instance);  // self
                 for (size_t i = 0; i < args.size(); ++i) {
-                  init_env->set(init_method.params[i + 1], args[i]);
+                  init_env->set(init_method->params[i + 1], args[i]);
                 }
                 try {
-                  interp->execute_block(init_method.block, init_env);
+                  interp->execute_block(init_method->block, init_env);
                 } catch (const std::string &) {
                 }
               } else if (!args.empty()) {
@@ -451,10 +435,10 @@ Value Interpreter::parse_expression(std::string expr,
               call_env->set(entry.params[i], args[i]);
             }
             try {
-              interp->execute_block(entry.block, call_env);
+              base_val = interp->execute_block(entry.block, call_env);
             } catch (const std::string &) {
+              base_val = Value();
             }
-            base_val = Value();
             continue;
           }
 
@@ -506,30 +490,44 @@ Value Interpreter::parse_expression(std::string expr,
                 error("Class '" + obj_inst->class_name + "' not found");
               }
 
-              auto method_it = class_it->second.methods.find(member);
-              if (method_it == class_it->second.methods.end()) {
-                error("Method '" + member + "' not found in class '" +
-                      obj_inst->class_name + "'");
+              // Find method with inheritance
+              const FunctionDefEntry *method = nullptr;
+              std::string current_class = obj_inst->class_name;
+              while (!current_class.empty()) {
+                auto cls_it = interp->classes.find(current_class);
+                if (cls_it != interp->classes.end()) {
+                  auto meth_it = cls_it->second.methods.find(member);
+                  if (meth_it != cls_it->second.methods.end()) {
+                    method = &meth_it->second;
+                    break;
+                  }
+                  current_class = cls_it->second.parent.value_or("");
+                } else {
+                  break;
+                }
               }
 
-              const auto &method = method_it->second;
-              // Method expects self + other params
-              if (method.params.size() != args.size() + 1) {
+              if (!method) {
+                error("Method '" + member + "' not found in class '" +
+                      obj_inst->class_name + "' or its parents");
+              }
+
+              if (method->params.size() != args.size() + 1) {
                 error("Method '" + member + "' expects " +
-                      std::to_string(method.params.size() - 1) +
+                      std::to_string(static_cast<int>(method->params.size()) - 1) +
                       " arguments but got " + std::to_string(args.size()));
               }
 
-              auto method_env = std::make_shared<Environment>(method.def_env);
-              method_env->set(method.params[0], base_val);  // self
+              auto method_env = std::make_shared<Environment>(method->def_env);
+              method_env->set(method->params[0], base_val);  // self
               for (size_t i = 0; i < args.size(); ++i) {
-                method_env->set(method.params[i + 1], args[i]);
+                method_env->set(method->params[i + 1], args[i]);
               }
               try {
-                interp->execute_block(method.block, method_env);
+                base_val = interp->execute_block(method->block, method_env);
               } catch (const std::string &) {
+                base_val = Value();
               }
-              base_val = Value();
               continue;
             } else {
               // Property access
@@ -755,7 +753,7 @@ Value Interpreter::eval_expr(const std::string &expr,
   return parse_expression(trim(expr), env);
 }
 
-void Interpreter::execute_block(const NodeList &nodes,
+Value Interpreter::execute_block(const NodeList &nodes,
                                 std::shared_ptr<Environment> env) {
   for (const auto &node : nodes) {
     try {
@@ -836,12 +834,16 @@ void Interpreter::execute_block(const NodeList &nodes,
         fake_expr << ')';
         eval_expr(fake_expr.str(), env);
       } else if (auto ret = std::dynamic_pointer_cast<Return>(node)) {
-        // ignored
+        if (ret->expr.has_value()) {
+          return eval_expr(ret->expr.value(), env);
+        } else {
+          return Value();
+        }
       } else if (auto imp = std::dynamic_pointer_cast<Import>(node)) {
         std::string mod = imp->name;
         std::replace(mod.begin(), mod.end(), '\\',
                      static_cast<char>(fs::path::preferred_separator));
-        fs::path p = stdlib_path.empty()
+        fs::path p = std::filesystem::path(stdlib_path).empty()
                          ? (fs::path(mod) += ".bloa")
                          : (fs::path(stdlib_path) / mod) += ".bloa";
         if (!fs::exists(p)) {
@@ -895,6 +897,7 @@ void Interpreter::execute_block(const NodeList &nodes,
         // Process class definition
         ClassDefEntry class_entry;
         class_entry.name = c->name;
+        class_entry.parent = c->parent;
         class_entry.class_env =
             env;  // capture the class definition environment
 
@@ -921,6 +924,7 @@ void Interpreter::execute_block(const NodeList &nodes,
       throw;
     }
   }
+  return Value();
 }
 
 }  // namespace bloa

@@ -14,7 +14,7 @@ class Interpreter {
   NodeList parse(const std::string &source);
   void run(const std::string &code, const std::string &filename = "<string>");
   Value eval_expr(const std::string &expr, std::shared_ptr<Environment> env);
-  void execute_block(const NodeList &nodes, std::shared_ptr<Environment> env);
+  Value execute_block(const NodeList &nodes, std::shared_ptr<Environment> env);
 
  private:
   std::shared_ptr<Environment> global_env;
@@ -25,6 +25,7 @@ class Interpreter {
   };
   struct ClassDefEntry {
     std::string name;
+    std::optional<std::string> parent;
     std::unordered_map<std::string, FunctionDefEntry> methods;
     std::shared_ptr<Environment> class_env;
   };
