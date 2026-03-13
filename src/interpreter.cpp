@@ -1,5 +1,4 @@
 #include "bloa/interpreter.hpp"
-#include "bloa/stdlib.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -13,6 +12,7 @@
 #include <stdexcept>
 
 #include "bloa/parser.hpp"
+#include "bloa/stdlib.hpp"
 
 namespace fs = std::filesystem;
 
@@ -399,7 +399,8 @@ Value Interpreter::parse_expression(std::string expr,
               if (init_method) {
                 if (init_method->params.size() != args.size() + 1) {
                   error("__init__() expects " +
-                        std::to_string(static_cast<int>(init_method->params.size()) - 1) +
+                        std::to_string(
+                            static_cast<int>(init_method->params.size()) - 1) +
                         " arguments but got " + std::to_string(args.size()));
                 }
                 auto init_env =
@@ -514,7 +515,8 @@ Value Interpreter::parse_expression(std::string expr,
 
               if (method->params.size() != args.size() + 1) {
                 error("Method '" + member + "' expects " +
-                      std::to_string(static_cast<int>(method->params.size()) - 1) +
+                      std::to_string(static_cast<int>(method->params.size()) -
+                                     1) +
                       " arguments but got " + std::to_string(args.size()));
               }
 
@@ -754,7 +756,7 @@ Value Interpreter::eval_expr(const std::string &expr,
 }
 
 Value Interpreter::execute_block(const NodeList &nodes,
-                                std::shared_ptr<Environment> env) {
+                                 std::shared_ptr<Environment> env) {
   for (const auto &node : nodes) {
     try {
       if (auto s = std::dynamic_pointer_cast<Say>(node)) {

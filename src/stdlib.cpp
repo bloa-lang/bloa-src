@@ -111,7 +111,8 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("now", Value::make_str("__builtin_now"));
 }
 
-Value handle_builtin(const std::string &marker, const std::vector<Value> &args) {
+Value handle_builtin(const std::string &marker,
+                     const std::vector<Value> &args) {
   if (marker == "__builtin_print") {
     for (size_t i = 0; i < args.size(); ++i) {
       if (i > 0) std::cout << ' ';
@@ -121,21 +122,23 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value();
   }
   if (marker == "__builtin_range") {
-    if (args.size() != 2) throw std::runtime_error("range() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("range() requires 2 arguments");
     int64_t start = static_cast<int64_t>(value_as_number(args[0]).as_number());
     int64_t stop = static_cast<int64_t>(value_as_number(args[1]).as_number());
     std::vector<Value> list;
-    for (int64_t i = start; i < stop; ++i)
-      list.push_back(Value::make_int(i));
+    for (int64_t i = start; i < stop; ++i) list.push_back(Value::make_int(i));
     return Value::make_list(list);
   }
   if (marker == "__builtin_len") {
     if (args.size() != 1) throw std::runtime_error("len() requires 1 argument");
     const auto &arg = args[0];
     if (std::holds_alternative<std::string>(arg.v)) {
-      return Value::make_int(static_cast<int64_t>(std::get<std::string>(arg.v).size()));
+      return Value::make_int(
+          static_cast<int64_t>(std::get<std::string>(arg.v).size()));
     } else if (std::holds_alternative<std::vector<Value>>(arg.v)) {
-      return Value::make_int(static_cast<int64_t>(std::get<std::vector<Value>>(arg.v).size()));
+      return Value::make_int(
+          static_cast<int64_t>(std::get<std::vector<Value>>(arg.v).size()));
     } else {
       throw std::runtime_error("len() argument must be string or list");
     }
@@ -146,27 +149,33 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
   }
   if (marker == "__builtin_int") {
     if (args.size() != 1) throw std::runtime_error("int() requires 1 argument");
-    return Value::make_int(static_cast<int64_t>(value_as_number(args[0]).as_number()));
+    return Value::make_int(
+        static_cast<int64_t>(value_as_number(args[0]).as_number()));
   }
   if (marker == "__builtin_float") {
-    if (args.size() != 1) throw std::runtime_error("float() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("float() requires 1 argument");
     return Value::make_double(value_as_number(args[0]).as_number());
   }
   if (marker == "__builtin_append") {
-    if (args.size() != 2) throw std::runtime_error("append() requires 2 arguments (list, value)");
-    if (!std::holds_alternative<std::vector<Value>>(args[0].v)) throw std::runtime_error("First argument to append() must be a list");
+    if (args.size() != 2)
+      throw std::runtime_error("append() requires 2 arguments (list, value)");
+    if (!std::holds_alternative<std::vector<Value>>(args[0].v))
+      throw std::runtime_error("First argument to append() must be a list");
     auto list = std::get<std::vector<Value>>(args[0].v);
     std::vector<Value> new_list = list;
     new_list.push_back(args[1]);
     return Value::make_list(std::move(new_list));
   }
   if (marker == "__builtin_sqrt") {
-    if (args.size() != 1) throw std::runtime_error("sqrt() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("sqrt() requires 1 argument");
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::sqrt(x));
   }
   if (marker == "__builtin_pow") {
-    if (args.size() != 2) throw std::runtime_error("pow() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("pow() requires 2 arguments");
     double base = value_as_number(args[0]).as_number();
     double exp = value_as_number(args[1]).as_number();
     return Value::make_double(std::pow(base, exp));
@@ -202,17 +211,20 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_double(std::abs(x));
   }
   if (marker == "__builtin_floor") {
-    if (args.size() != 1) throw std::runtime_error("floor() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("floor() requires 1 argument");
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::floor(x));
   }
   if (marker == "__builtin_ceil") {
-    if (args.size() != 1) throw std::runtime_error("ceil() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("ceil() requires 1 argument");
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::ceil(x));
   }
   if (marker == "__builtin_round") {
-    if (args.size() != 1) throw std::runtime_error("round() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("round() requires 1 argument");
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::round(x));
   }
@@ -223,15 +235,18 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_double(2.718281828459045);
   }
   if (marker == "__builtin_read_file") {
-    if (args.size() != 1) throw std::runtime_error("read_file() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("read_file() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     std::ifstream ifs(path);
     if (!ifs) throw std::runtime_error("Cannot open file: " + path);
-    std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    std::string content((std::istreambuf_iterator<char>(ifs)),
+                        std::istreambuf_iterator<char>());
     return Value::make_str(content);
   }
   if (marker == "__builtin_write_file") {
-    if (args.size() != 2) throw std::runtime_error("write_file() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("write_file() requires 2 arguments");
     std::string path = std::get<std::string>(args[0].v);
     std::string content = std::get<std::string>(args[1].v);
     std::ofstream ofs(path);
@@ -240,62 +255,73 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value();
   }
   if (marker == "__builtin_exists") {
-    if (args.size() != 1) throw std::runtime_error("exists() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("exists() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::exists(path));
   }
   if (marker == "__builtin_list_dir") {
-    if (args.size() != 1) throw std::runtime_error("list_dir() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("list_dir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     std::vector<Value> list;
-    for (const auto& entry : fs::directory_iterator(path)) {
+    for (const auto &entry : fs::directory_iterator(path)) {
       list.push_back(Value::make_str(entry.path().string()));
     }
     return Value::make_list(list);
   }
   if (marker == "__builtin_mkdir") {
-    if (args.size() != 1) throw std::runtime_error("mkdir() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("mkdir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::create_directory(path));
   }
   if (marker == "__builtin_rmdir") {
-    if (args.size() != 1) throw std::runtime_error("rmdir() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("rmdir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::remove(path));
   }
   if (marker == "__builtin_remove") {
-    if (args.size() != 1) throw std::runtime_error("remove() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("remove() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::remove(path));
   }
   if (marker == "__builtin_copy_file") {
-    if (args.size() != 2) throw std::runtime_error("copy_file() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("copy_file() requires 2 arguments");
     std::string from = std::get<std::string>(args[0].v);
     std::string to = std::get<std::string>(args[1].v);
     fs::copy_file(from, to);
     return Value();
   }
   if (marker == "__builtin_move") {
-    if (args.size() != 2) throw std::runtime_error("move() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("move() requires 2 arguments");
     std::string from = std::get<std::string>(args[0].v);
     std::string to = std::get<std::string>(args[1].v);
     fs::rename(from, to);
     return Value();
   }
   if (marker == "__builtin_file_size") {
-    if (args.size() != 1) throw std::runtime_error("file_size() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("file_size() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_int(fs::file_size(path));
   }
   if (marker == "__builtin_is_dir") {
-    if (args.size() != 1) throw std::runtime_error("is_dir() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("is_dir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::is_directory(path));
   }
   if (marker == "__builtin_split") {
-    if (args.size() < 1 || args.size() > 2) throw std::runtime_error("split() requires 1 or 2 arguments");
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("split() requires 1 or 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
-    std::string delim = (args.size() == 2) ? std::get<std::string>(args[1].v) : " ";
+    std::string delim =
+        (args.size() == 2) ? std::get<std::string>(args[1].v) : " ";
     std::vector<Value> list;
     size_t pos = 0;
     while ((pos = s.find(delim)) != std::string::npos) {
@@ -306,8 +332,9 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_list(list);
   }
   if (marker == "__builtin_join") {
-    if (args.size() != 2) throw std::runtime_error("join() requires 2 arguments");
-    const auto& list = as_list(args[0]);
+    if (args.size() != 2)
+      throw std::runtime_error("join() requires 2 arguments");
+    const auto &list = as_list(args[0]);
     std::string sep = std::get<std::string>(args[1].v);
     std::string result;
     for (size_t i = 0; i < list.size(); ++i) {
@@ -317,21 +344,27 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_str(result);
   }
   if (marker == "__builtin_substr") {
-    if (args.size() < 2 || args.size() > 3) throw std::runtime_error("substr() requires 2 or 3 arguments");
+    if (args.size() < 2 || args.size() > 3)
+      throw std::runtime_error("substr() requires 2 or 3 arguments");
     std::string s = std::get<std::string>(args[0].v);
     size_t start = static_cast<size_t>(value_as_number(args[1]).as_number());
-    size_t len = (args.size() == 3) ? static_cast<size_t>(value_as_number(args[2]).as_number()) : std::string::npos;
+    size_t len = (args.size() == 3)
+                     ? static_cast<size_t>(value_as_number(args[2]).as_number())
+                     : std::string::npos;
     return Value::make_str(s.substr(start, len));
   }
   if (marker == "__builtin_find") {
-    if (args.size() != 2) throw std::runtime_error("find() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("find() requires 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
     std::string sub = std::get<std::string>(args[1].v);
     size_t pos = s.find(sub);
-    return Value::make_int(pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+    return Value::make_int(
+        pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
   }
   if (marker == "__builtin_replace") {
-    if (args.size() != 3) throw std::runtime_error("replace() requires 3 arguments");
+    if (args.size() != 3)
+      throw std::runtime_error("replace() requires 3 arguments");
     std::string s = std::get<std::string>(args[0].v);
     std::string old_str = std::get<std::string>(args[1].v);
     std::string new_str = std::get<std::string>(args[2].v);
@@ -343,50 +376,63 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_str(s);
   }
   if (marker == "__builtin_to_upper") {
-    if (args.size() != 1) throw std::runtime_error("to_upper() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("to_upper() requires 1 argument");
     std::string s = std::get<std::string>(args[0].v);
     std::transform(s.begin(), s.end(), s.begin(), ::toupper);
     return Value::make_str(s);
   }
   if (marker == "__builtin_to_lower") {
-    if (args.size() != 1) throw std::runtime_error("to_lower() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("to_lower() requires 1 argument");
     std::string s = std::get<std::string>(args[0].v);
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
     return Value::make_str(s);
   }
   if (marker == "__builtin_trim") {
-    if (args.size() != 1) throw std::runtime_error("trim() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("trim() requires 1 argument");
     std::string s = std::get<std::string>(args[0].v);
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) { return !std::isspace(ch); }));
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !std::isspace(ch); }).base(), s.end());
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+              return !std::isspace(ch);
+            }));
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+                         [](unsigned char ch) { return !std::isspace(ch); })
+                .base(),
+            s.end());
     return Value::make_str(s);
   }
   if (marker == "__builtin_starts_with") {
-    if (args.size() != 2) throw std::runtime_error("starts_with() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("starts_with() requires 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
     std::string prefix = std::get<std::string>(args[1].v);
     return Value::make_bool(s.starts_with(prefix));
   }
   if (marker == "__builtin_ends_with") {
-    if (args.size() != 2) throw std::runtime_error("ends_with() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("ends_with() requires 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
     std::string suffix = std::get<std::string>(args[1].v);
     return Value::make_bool(s.ends_with(suffix));
   }
   if (marker == "__builtin_contains") {
-    if (args.size() != 2) throw std::runtime_error("contains() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("contains() requires 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
     std::string sub = std::get<std::string>(args[1].v);
     return Value::make_bool(s.find(sub) != std::string::npos);
   }
   if (marker == "__builtin_reverse") {
-    if (args.size() != 1) throw std::runtime_error("reverse() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("reverse() requires 1 argument");
     std::string s = std::get<std::string>(args[0].v);
     std::reverse(s.begin(), s.end());
     return Value::make_str(s);
   }
   if (marker == "__builtin_repeat") {
-    if (args.size() != 2) throw std::runtime_error("repeat() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("repeat() requires 2 arguments");
     std::string s = std::get<std::string>(args[0].v);
     int64_t n = static_cast<int64_t>(value_as_number(args[1]).as_number());
     std::string result;
@@ -394,18 +440,28 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
     return Value::make_str(result);
   }
   if (marker == "__builtin_random_int") {
-    if (args.size() < 1 || args.size() > 2) throw std::runtime_error("random_int() requires 1 or 2 arguments");
-    int64_t min = (args.size() == 2) ? static_cast<int64_t>(value_as_number(args[0]).as_number()) : 0;
-    int64_t max = (args.size() == 2) ? static_cast<int64_t>(value_as_number(args[1]).as_number()) : static_cast<int64_t>(value_as_number(args[0]).as_number());
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("random_int() requires 1 or 2 arguments");
+    int64_t min =
+        (args.size() == 2)
+            ? static_cast<int64_t>(value_as_number(args[0]).as_number())
+            : 0;
+    int64_t max =
+        (args.size() == 2)
+            ? static_cast<int64_t>(value_as_number(args[1]).as_number())
+            : static_cast<int64_t>(value_as_number(args[0]).as_number());
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_int_distribution<int64_t> dist(min, max);
     return Value::make_int(dist(gen));
   }
   if (marker == "__builtin_random_float") {
-    if (args.size() < 1 || args.size() > 2) throw std::runtime_error("random_float() requires 1 or 2 arguments");
-    double min = (args.size() == 2) ? value_as_number(args[0]).as_number() : 0.0;
-    double max = (args.size() == 2) ? value_as_number(args[1]).as_number() : value_as_number(args[0]).as_number();
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("random_float() requires 1 or 2 arguments");
+    double min =
+        (args.size() == 2) ? value_as_number(args[0]).as_number() : 0.0;
+    double max = (args.size() == 2) ? value_as_number(args[1]).as_number()
+                                    : value_as_number(args[0]).as_number();
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_real_distribution<double> dist(min, max);
@@ -414,7 +470,8 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args) 
   if (marker == "__builtin_now") {
     auto now = std::chrono::system_clock::now();
     auto duration = now.time_since_epoch();
-    auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    auto millis =
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     return Value::make_int(millis);
   }
   throw std::runtime_error("Unknown built-in: " + marker);
