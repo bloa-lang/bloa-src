@@ -20,6 +20,9 @@ namespace bloa {
 
 using NodePtr = std::shared_ptr<Node>;
 
+struct BreakException {};
+struct ContinueException {};
+
 static std::string value_to_string(const Value &v) {
   if (std::holds_alternative<std::monostate>(v.v)) return "None";
   if (std::holds_alternative<int64_t>(v.v))
@@ -108,9 +111,20 @@ void Environment::set(const std::string &name, Value val) {
   auto it = vars.find(name);
   if (it != vars.end()) {
     it->second.value = std::move(val);
-  } else {
-    vars[name] = Variable{std::move(val), std::string{}};
+    return;
   }
+
+  auto current = parent;
+  while (current) {
+    auto pit = current->vars.find(name);
+    if (pit != current->vars.end()) {
+      pit->second.value = std::move(val);
+      return;
+    }
+    current = current->parent;
+  }
+
+  vars[name] = Variable{std::move(val), std::string{}};
 }
 
 Interpreter::Interpreter(std::string stdlib_path_, const std::string &source)
@@ -818,8 +832,18 @@ Value Interpreter::execute_block(const NodeList &nodes,
         for (int64_t j = 0; j < times; ++j) {
           auto loop_env = std::make_shared<Environment>(env);
           loop_env->set("count", Value::make_int(j + 1));
-          execute_block(rep->block, loop_env);
+          try {
+            execute_block(rep->block, loop_env);
+          } catch (const ContinueException &) {
+            continue;
+          } catch (const BreakException &) {
+            break;
+          }
         }
+      } else if (auto b = std::dynamic_pointer_cast<Break>(node)) {
+        throw BreakException();
+      } else if (auto c = std::dynamic_pointer_cast<Continue>(node)) {
+        throw ContinueException();
       } else if (auto fd = std::dynamic_pointer_cast<FunctionDef>(node)) {
         FunctionDefEntry entry;
         entry.params = fd->params;
@@ -866,7 +890,13 @@ Value Interpreter::execute_block(const NodeList &nodes,
         while (true) {
           Value cond = eval_expr(wh->cond, env);
           if (!value_is_true(cond)) break;
-          execute_block(wh->block, std::make_shared<Environment>(env));
+          try {
+            execute_block(wh->block, std::make_shared<Environment>(env));
+          } catch (const ContinueException &) {
+            continue;
+          } catch (const BreakException &) {
+            break;
+          }
         }
       } else if (auto fin = std::dynamic_pointer_cast<ForIn>(node)) {
         Value itv = eval_expr(fin->iterable, env);
@@ -877,12 +907,22 @@ Value Interpreter::execute_block(const NodeList &nodes,
         for (const auto &item : list) {
           auto loop_env = std::make_shared<Environment>(env);
           loop_env->set(fin->var, item);
-          execute_block(fin->block, loop_env);
+          try {
+            execute_block(fin->block, loop_env);
+          } catch (const ContinueException &) {
+            continue;
+          } catch (const BreakException &) {
+            break;
+          }
         }
       } else if (auto te = std::dynamic_pointer_cast<TryExcept>(node)) {
         try {
           execute_block(te->try_block, std::make_shared<Environment>(env));
-        } catch (...) {
+        } catch (const BreakException &) {
+          throw;
+        } catch (const ContinueException &) {
+          throw;
+        } catch (const std::exception &) {
           if (!te->except_block.empty()) {
             execute_block(te->except_block, std::make_shared<Environment>(env));
           } else {

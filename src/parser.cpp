@@ -77,8 +77,6 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
     int indent = indent_level(raw_line);
     if (indent < base_indent) break;
-    if (indent > base_indent)
-      throw_parse_error(idx + 1, "Unexpected indent", raw_line, indent + 1);
 
     /* block end */
     if (line == "}") {
@@ -165,13 +163,15 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       continue;
     }
 
-    /* foreach */
-    if (starts_with(line, "foreach (") && line.back() == '{') {
-      std::string header = line.substr(9, line.size() - 11);
+    /* foreach / for-in */
+    if ((starts_with(line, "foreach (") || starts_with(line, "for-in (")) &&
+        line.back() == '{') {
+      size_t start = line.find('(');
+      std::string header = line.substr(start + 1, line.size() - start - 4);
       auto pos = header.find(" as ");
       if (pos == std::string::npos)
         throw_parse_error(idx + 1,
-                          "Invalid foreach syntax (expected 'as' in header)",
+                          "Invalid foreach/for-in syntax (expected 'as' in header)",
                           raw_line, first_nonspace_col(raw_line));
       std::string iterable = header.substr(0, pos);
       std::string var = header.substr(pos + 4);
@@ -226,6 +226,40 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       auto res = parse_block(lines, idx + 1, base_indent);
       nodes.push_back(std::make_shared<ClassDef>(name, parent, res.first));
       idx = res.second;
+      continue;
+    }
+
+    /* try/except */
+    if (line == "try {") {
+      auto try_res = parse_block(lines, idx + 1, base_indent);
+      NodeList except_block;
+      int next = try_res.second;
+      if (next < (int)lines.size()) {
+        std::string next_line = ltrim(rtrim(lines[next]));
+        if (next_line == "except {") {
+          auto except_res = parse_block(lines, next + 1, base_indent);
+          except_block = except_res.first;
+          next = except_res.second;
+        } else {
+          throw_parse_error(next + 1,
+                            "Expected 'except {' after try block",
+                            lines[next], first_nonspace_col(lines[next]));
+        }
+      }
+      nodes.push_back(std::make_shared<TryExcept>(try_res.first, except_block));
+      idx = next;
+      continue;
+    }
+
+    /* break / continue */
+    if (line == "break;") {
+      nodes.push_back(std::make_shared<Break>());
+      idx++;
+      continue;
+    }
+    if (line == "continue;") {
+      nodes.push_back(std::make_shared<Continue>());
+      idx++;
       continue;
     }
 

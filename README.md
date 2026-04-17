@@ -5,7 +5,7 @@ A minimalist interpreter for the **bloa** scripting language.
 ## Features
 
 - Variables and expressions (arithmetic, logic, comparison)
-- Control flow: if/else, while, for-in, repeat
+- Control flow: if/else, while, foreach/for-in, repeat, break, continue, try/except
 - Functions with parameters
 - Classes with methods and inheritance (`extends`)
 - Modules: `use` for importing, `require` for including files
@@ -22,6 +22,31 @@ A minimalist interpreter for the **bloa** scripting language.
 x = 42
 y = x + 10
 say "Result: " + str(y)
+```
+
+### Control Flow
+```
+if (x > 10) {
+  say "big"
+} else {
+  say "small"
+}
+
+foreach (range(0, 5) as value) {
+  if (value == 3) {
+    continue;
+  }
+  if (value == 4) {
+    break;
+  }
+  say value
+}
+
+try {
+  read_file("missing.txt")
+} except {
+  say "Failed to read file"
+}
 ```
 
 ### Functions
