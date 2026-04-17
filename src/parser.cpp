@@ -61,6 +61,29 @@ static std::string rtrim(const std::string &s) {
   return s.substr(0, pos + 1);
 }
 
+static std::string strip_trailing_semicolon(std::string line) {
+  if (line.empty() || line.back() != ';') return line;
+  bool in_single = false;
+  bool in_double = false;
+  for (size_t i = 0; i + 1 < line.size(); ++i) {
+    char c = line[i];
+    if (c == '\\' && i + 1 < line.size()) {
+      ++i;
+      continue;
+    }
+    if (c == '"' && !in_single) {
+      in_double = !in_double;
+    } else if (c == '\'' && !in_double) {
+      in_single = !in_single;
+    }
+  }
+  if (!in_single && !in_double) {
+    line.pop_back();
+    return rtrim(line);
+  }
+  return line;
+}
+
 std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
                                      int start_idx, int base_indent) {
   int idx = start_idx;
@@ -68,7 +91,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
 
   while (idx < (int)lines.size()) {
     const std::string raw_line = lines[idx];
-    std::string line = ltrim(rtrim(raw_line));
+    std::string line = strip_trailing_semicolon(ltrim(rtrim(raw_line)));
 
     if (line.empty() || line.rfind("#", 0) == 0) {
       idx++;
@@ -87,6 +110,13 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     /* say */
     if (starts_with(line, "say ")) {
       nodes.push_back(std::make_shared<Say>(line.substr(4)));
+      idx++;
+      continue;
+    }
+
+    /* echo */
+    if (starts_with(line, "echo ")) {
+      nodes.push_back(std::make_shared<Say>(line.substr(5)));
       idx++;
       continue;
     }

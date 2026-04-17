@@ -232,6 +232,18 @@ Value Interpreter::parse_expression(std::string expr,
       return false;
     }
 
+    bool match_keyword(const std::string &kw) {
+      skip_space();
+      if (pos + kw.size() <= s.size() && s.substr(pos, kw.size()) == kw) {
+        if (pos + kw.size() == s.size() ||
+            !is_ident_continue(s[pos + kw.size()])) {
+          pos += kw.size();
+          return true;
+        }
+      }
+      return false;
+    }
+
     Value parse_primary() {
       skip_space();
       if (pos >= s.size()) error("Unexpected end of expression");
@@ -328,6 +340,71 @@ Value Interpreter::parse_expression(std::string expr,
         }
       }
 
+      if (match_keyword("new")) {
+        skip_space();
+        if (pos >= s.size() || !is_ident_start(s[pos]))
+          error("Expected class name after 'new'");
+        size_t start = pos;
+        ++pos;
+        while (pos < s.size() && is_ident_continue(s[pos])) ++pos;
+        std::string class_name = s.substr(start, pos - start);
+        std::vector<Value> constructor_args;
+        if (match('(')) {
+          if (!match(')')) {
+            while (true) {
+              constructor_args.push_back(parse_expr());
+              if (match(')')) break;
+              if (!match(',')) error("Expected ',' or ')' in argument list");
+            }
+          }
+        }
+
+        auto class_it = interp->classes.find(class_name);
+        if (class_it == interp->classes.end())
+          error("Class '" + class_name + "' not found");
+
+        const auto &class_def = class_it->second;
+        auto instance_env = std::make_shared<Environment>(class_def.class_env);
+        auto instance = Value::make_object(class_name, instance_env);
+
+        const FunctionDefEntry *init_method = nullptr;
+        std::string current_class = class_name;
+        while (!current_class.empty()) {
+          auto cls_it = interp->classes.find(current_class);
+          if (cls_it != interp->classes.end()) {
+            auto meth_it = cls_it->second.methods.find("__init__");
+            if (meth_it != cls_it->second.methods.end()) {
+              init_method = &meth_it->second;
+              break;
+            }
+            current_class = cls_it->second.parent.value_or("");
+          } else {
+            break;
+          }
+        }
+
+        if (init_method) {
+          if (init_method->params.size() != constructor_args.size() + 1)
+            error("__init__() expects " +
+                  std::to_string(
+                      static_cast<int>(init_method->params.size()) - 1) +
+                  " arguments but got " +
+                  std::to_string(constructor_args.size()));
+          auto init_env = std::make_shared<Environment>(init_method->def_env);
+          init_env->set(init_method->params[0], instance);
+          for (size_t i = 0; i < constructor_args.size(); ++i) {
+            init_env->set(init_method->params[i + 1], constructor_args[i]);
+          }
+          try {
+            interp->execute_block(init_method->block, init_env);
+          } catch (const std::string &) {
+          }
+        } else if (!constructor_args.empty()) {
+          error("Class '" + class_name + "' does not accept arguments");
+        }
+        return instance;
+      }
+
       if (is_ident_start(s[pos])) {
         size_t start = pos;
         ++pos;
@@ -379,7 +456,7 @@ Value Interpreter::parse_expression(std::string expr,
             if (std::holds_alternative<std::string>(base_val.v)) {
               std::string marker = std::get<std::string>(base_val.v);
               if (marker.starts_with("__builtin_")) {
-                base_val = handle_builtin(marker, args);
+                base_val = handle_builtin(marker, args, env);
                 continue;
               }
             }
@@ -930,11 +1007,36 @@ Value Interpreter::execute_block(const NodeList &nodes,
           }
         }
       } else if (auto r = std::dynamic_pointer_cast<Require>(node)) {
-        std::ifstream ifs(r->path);
-        if (!ifs) throw std::runtime_error("Require failed: " + r->path);
-        std::string code((std::istreambuf_iterator<char>(ifs)), {});
-        auto nodes = parse(code);
-        execute_block(nodes, env);
+        fs::path req_path(r->path);
+        if (req_path.extension() == ".baar") {
+          auto entries = read_archive(r->path);
+          std::string code;
+          for (const auto &entry : entries) {
+            if (entry.first == "main.bloa" || entry.first == "index.bloa") {
+              code = entry.second;
+              break;
+            }
+          }
+          if (code.empty()) {
+            for (const auto &entry : entries) {
+              if (fs::path(entry.first).extension() == ".bloa") {
+                code = entry.second;
+                break;
+              }
+            }
+          }
+          if (code.empty() && !entries.empty()) code = entries[0].second;
+          if (code.empty())
+            throw std::runtime_error("Archive contains no Bloa entry: " + r->path);
+          auto nodes = parse(code);
+          execute_block(nodes, env);
+        } else {
+          std::ifstream ifs(r->path);
+          if (!ifs) throw std::runtime_error("Require failed: " + r->path);
+          std::string code((std::istreambuf_iterator<char>(ifs)), {});
+          auto nodes = parse(code);
+          execute_block(nodes, env);
+        }
       } else if (auto c = std::dynamic_pointer_cast<ClassDef>(node)) {
         // Process class definition
         ClassDefEntry class_entry;

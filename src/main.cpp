@@ -3,8 +3,9 @@
 #include <sstream>
 
 #include "bloa/interpreter.hpp"
+#include "bloa/stdlib.hpp"
 
-#define BLOA_VERSION "0.2.0-alpha"
+#define BLOA_VERSION "1.0.0-RC1"
 
 void print_help() {
   std::cout << "BLOA — Lightweight scripting language\n"
@@ -58,15 +59,47 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  // Menjalankan file .bloa
-  std::ifstream ifs(arg);
-  if (!ifs) {
-    std::cerr << "Unable to open file: " << arg << std::endl;
-    return 1;
+  std::string src;
+  if (arg.size() >= 5 && arg.substr(arg.size() - 5) == ".baar") {
+    try {
+      auto entries = bloa::read_archive(arg);
+      std::string code;
+      for (const auto &entry : entries) {
+        if (entry.first == "main.bloa" || entry.first == "index.bloa") {
+          code = entry.second;
+          break;
+        }
+      }
+      if (code.empty()) {
+        for (const auto &entry : entries) {
+          if (entry.first.size() >= 5 && entry.first.substr(entry.first.size() - 5) == ".bloa") {
+            code = entry.second;
+            break;
+          }
+        }
+      }
+      if (code.empty() && !entries.empty()) code = entries[0].second;
+      if (code.empty()) {
+        std::cerr << "Baar archive contains no executable entry: " << arg << std::endl;
+        return 1;
+      }
+      src = std::move(code);
+    } catch (const std::exception &e) {
+      std::cerr << "[BLOA Error] " << e.what() << "\n";
+      std::cerr << "  File: " << arg << "\n";
+      return 1;
+    }
+  } else {
+    std::ifstream ifs(arg);
+    if (!ifs) {
+      std::cerr << "Unable to open file: " << arg << std::endl;
+      return 1;
+    }
+
+    src.assign((std::istreambuf_iterator<char>(ifs)),
+               std::istreambuf_iterator<char>());
   }
 
-  std::string src((std::istreambuf_iterator<char>(ifs)),
-                  std::istreambuf_iterator<char>());
   bloa::Interpreter interp("");
 
   try {

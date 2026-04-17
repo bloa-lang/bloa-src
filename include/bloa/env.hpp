@@ -86,10 +86,28 @@ struct Environment {
   Environment(std::shared_ptr<Environment> parent = nullptr);
   std::optional<Value> get(const std::string &name) const;
   void set(const std::string &name, Value val);
+  bool has(const std::string &name) const;
+  bool remove(const std::string &name);
   std::shared_ptr<Environment> parent;
 
  private:
   std::unordered_map<std::string, Variable> vars;
 };
+
+inline bool Environment::has(const std::string &name) const {
+  if (vars.find(name) != vars.end()) return true;
+  if (parent) return parent->has(name);
+  return false;
+}
+
+inline bool Environment::remove(const std::string &name) {
+  auto it = vars.find(name);
+  if (it != vars.end()) {
+    vars.erase(it);
+    return true;
+  }
+  if (parent) return parent->remove(name);
+  return false;
+}
 
 }  // namespace bloa

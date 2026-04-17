@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstring>
+#include <curl/curl.h>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <random>
+#include <sqlite3.h>
 #include <sstream>
 
 namespace fs = std::filesystem;
@@ -51,6 +54,66 @@ static std::string value_to_string(const Value &v) {
 
 static const std::vector<Value> &as_list(const Value &v) {
   return std::get<std::vector<Value>>(v.v);
+}
+
+static size_t curl_write_callback(void *contents, size_t size, size_t nmemb,
+                                  void *userp) {
+  size_t total = size * nmemb;
+  std::string *buffer = static_cast<std::string *>(userp);
+  buffer->append(static_cast<char *>(contents), total);
+  return total;
+}
+
+static void sqlite_throw_if_error(int result, sqlite3 *db) {
+  if (result != SQLITE_OK) {
+    std::string err = sqlite3_errmsg(db);
+    sqlite3_close(db);
+    throw std::runtime_error("SQLite error: " + err);
+  }
+}
+
+static const std::string archive_magic = "BLOAARCHIVE\n";
+
+std::vector<std::pair<std::string, std::string>> read_archive(
+    const std::string &path) {
+  std::ifstream ifs(path, std::ios::binary);
+  if (!ifs) throw std::runtime_error("Cannot open archive: " + path);
+  std::string magic(archive_magic.size(), '\0');
+  ifs.read(&magic[0], static_cast<std::streamsize>(magic.size()));
+  if (magic != archive_magic) throw std::runtime_error("Invalid archive: " + path);
+  uint64_t count = 0;
+  ifs.read(reinterpret_cast<char *>(&count), sizeof(count));
+  std::vector<std::pair<std::string, std::string>> entries;
+  for (uint64_t i = 0; i < count; ++i) {
+    uint64_t name_len = 0;
+    uint64_t data_len = 0;
+    ifs.read(reinterpret_cast<char *>(&name_len), sizeof(name_len));
+    ifs.read(reinterpret_cast<char *>(&data_len), sizeof(data_len));
+    std::string name(name_len, '\0');
+    std::string data(data_len, '\0');
+    ifs.read(&name[0], static_cast<std::streamsize>(name_len));
+    ifs.read(&data[0], static_cast<std::streamsize>(data_len));
+    entries.emplace_back(std::move(name), std::move(data));
+  }
+  return entries;
+}
+
+void write_archive(
+    const std::string &path,
+    const std::vector<std::pair<std::string, std::string>> &entries) {
+  std::ofstream ofs(path, std::ios::binary);
+  if (!ofs) throw std::runtime_error("Cannot create archive: " + path);
+  ofs.write(archive_magic.data(), static_cast<std::streamsize>(archive_magic.size()));
+  uint64_t count = entries.size();
+  ofs.write(reinterpret_cast<const char *>(&count), sizeof(count));
+  for (const auto &entry : entries) {
+    uint64_t name_len = entry.first.size();
+    uint64_t data_len = entry.second.size();
+    ofs.write(reinterpret_cast<const char *>(&name_len), sizeof(name_len));
+    ofs.write(reinterpret_cast<const char *>(&data_len), sizeof(data_len));
+    ofs.write(entry.first.data(), static_cast<std::streamsize>(name_len));
+    ofs.write(entry.second.data(), static_cast<std::streamsize>(data_len));
+  }
 }
 
 void register_stdlib(std::shared_ptr<Environment> env) {
@@ -110,17 +173,65 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("random_int", Value::make_str("__builtin_random_int"));
   env->set("random_float", Value::make_str("__builtin_random_float"));
   env->set("now", Value::make_str("__builtin_now"));
+
+  // PHP / Java-like helpers
+  env->set("echo", Value::make_str("__builtin_echo"));
+  env->set("isset", Value::make_str("__builtin_isset"));
+  env->set("unset", Value::make_str("__builtin_unset"));
+
+  // BAAR archive helpers
+  env->set("baar_create", Value::make_str("__builtin_baar_create"));
+  env->set("baar_extract", Value::make_str("__builtin_baar_extract"));
+  env->set("baar_list", Value::make_str("__builtin_baar_list"));
+  env->set("baar_read", Value::make_str("__builtin_baar_read"));
+
+  // HTTP and network helpers
+  env->set("curl_get", Value::make_str("__builtin_curl_get"));
+  env->set("curl_post", Value::make_str("__builtin_curl_post"));
+  env->set("curl_request", Value::make_str("__builtin_curl_request"));
+
+  // SQLite helpers
+  env->set("sqlite_query", Value::make_str("__builtin_sqlite_query"));
+  env->set("sqlite_exec", Value::make_str("__builtin_sqlite_exec"));
 }
 
 Value handle_builtin(const std::string &marker,
-                     const std::vector<Value> &args) {
-  if (marker == "__builtin_print") {
+                     const std::vector<Value> &args,
+                     std::shared_ptr<Environment> env) {
+  if (marker == "__builtin_print" || marker == "__builtin_echo") {
     for (size_t i = 0; i < args.size(); ++i) {
       if (i > 0) std::cout << ' ';
       std::cout << value_to_string(args[i]);
     }
     std::cout << '\n';
     return Value();
+  }
+  if (marker == "__builtin_isset") {
+    if (!env) throw std::runtime_error("isset() requires environment access");
+    if (args.size() == 1 && std::holds_alternative<std::string>(args[0].v)) {
+      return Value::make_bool(env->has(std::get<std::string>(args[0].v)));
+    }
+    if (args.size() == 2 &&
+        std::holds_alternative<std::shared_ptr<ObjectInstance>>(args[0].v) &&
+        std::holds_alternative<std::string>(args[1].v)) {
+      auto obj = std::get<std::shared_ptr<ObjectInstance>>(args[0].v);
+      return Value::make_bool(obj->properties->has(std::get<std::string>(args[1].v)));
+    }
+    throw std::runtime_error("isset() requires 1 string argument or (object, member)");
+  }
+  if (marker == "__builtin_unset") {
+    if (!env) throw std::runtime_error("unset() requires environment access");
+    if (args.size() == 1 && std::holds_alternative<std::string>(args[0].v)) {
+      return Value::make_bool(env->remove(std::get<std::string>(args[0].v)));
+    }
+    if (args.size() == 2 &&
+        std::holds_alternative<std::shared_ptr<ObjectInstance>>(args[0].v) &&
+        std::holds_alternative<std::string>(args[1].v)) {
+      auto obj = std::get<std::shared_ptr<ObjectInstance>>(args[0].v);
+      return Value::make_bool(obj->properties->remove(
+          std::get<std::string>(args[1].v)));
+    }
+    throw std::runtime_error("unset() requires 1 string argument or (object, member)");
   }
   if (marker == "__builtin_range") {
     if (args.size() != 2)
@@ -439,6 +550,158 @@ Value handle_builtin(const std::string &marker,
     std::string result;
     for (int64_t i = 0; i < n; ++i) result += s;
     return Value::make_str(result);
+  }
+  if (marker == "__builtin_baar_create") {
+    if (args.size() != 2)
+      throw std::runtime_error("baar_create() requires 2 arguments");
+    std::string path = std::get<std::string>(args[0].v);
+    const auto &files = as_list(args[1]);
+    std::vector<std::pair<std::string, std::string>> entries;
+    for (const auto &entry_val : files) {
+      if (!std::holds_alternative<std::vector<Value>>(entry_val.v))
+        throw std::runtime_error("baar_create() file list must contain [name, data] entries");
+      const auto &entry = std::get<std::vector<Value>>(entry_val.v);
+      if (entry.size() != 2)
+        throw std::runtime_error("baar_create() entry must be [name, data]");
+      if (!std::holds_alternative<std::string>(entry[0].v))
+        throw std::runtime_error("baar_create() entry name must be a string");
+      entries.emplace_back(std::get<std::string>(entry[0].v),
+                           value_to_string(entry[1]));
+    }
+    write_archive(path, entries);
+    return Value();
+  }
+  if (marker == "__builtin_baar_extract") {
+    if (args.size() != 2)
+      throw std::runtime_error("baar_extract() requires 2 arguments");
+    std::string path = std::get<std::string>(args[0].v);
+    std::string dest = std::get<std::string>(args[1].v);
+    auto entries = read_archive(path);
+    fs::create_directories(dest);
+    for (const auto &entry : entries) {
+      fs::path out_path = fs::path(dest) / entry.first;
+      fs::create_directories(out_path.parent_path());
+      std::ofstream ofs(out_path, std::ios::binary);
+      ofs << entry.second;
+    }
+    return Value();
+  }
+  if (marker == "__builtin_baar_list") {
+    if (args.size() != 1)
+      throw std::runtime_error("baar_list() requires 1 argument");
+    std::string path = std::get<std::string>(args[0].v);
+    auto entries = read_archive(path);
+    std::vector<Value> list;
+    for (const auto &entry : entries) {
+      list.push_back(Value::make_str(entry.first));
+    }
+    return Value::make_list(list);
+  }
+  if (marker == "__builtin_baar_read") {
+    if (args.size() != 2)
+      throw std::runtime_error("baar_read() requires 2 arguments");
+    std::string path = std::get<std::string>(args[0].v);
+    std::string name = std::get<std::string>(args[1].v);
+    auto entries = read_archive(path);
+    for (const auto &entry : entries) {
+      if (entry.first == name) return Value::make_str(entry.second);
+    }
+    throw std::runtime_error("Baar entry not found: " + name);
+  }
+  if (marker == "__builtin_curl_get" || marker == "__builtin_curl_post" ||
+      marker == "__builtin_curl_request") {
+    if (args.empty() || args.size() > 3)
+      throw std::runtime_error("curl_get/curl_post/curl_request() requires 1-3 arguments");
+    std::string url = std::get<std::string>(args[0].v);
+    std::string method = "GET";
+    std::string body;
+    if (marker == "__builtin_curl_post") {
+      method = "POST";
+      if (args.size() < 2)
+        throw std::runtime_error("curl_post() requires url and body");
+      body = std::get<std::string>(args[1].v);
+    }
+    if (marker == "__builtin_curl_request") {
+      if (args.size() >= 2)
+        method = std::get<std::string>(args[1].v);
+      if (args.size() == 3)
+        body = std::get<std::string>(args[2].v);
+    }
+    CURL *curl = curl_easy_init();
+    if (!curl) throw std::runtime_error("Failed to initialize curl");
+    std::string response;
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    if (method == "POST") {
+      curl_easy_setopt(curl, CURLOPT_POST, 1L);
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+    } else if (method != "GET") {
+      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, method.c_str());
+      if (!body.empty()) {
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+      }
+    }
+    CURLcode res = curl_easy_perform(curl);
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+    curl_easy_cleanup(curl);
+    if (res != CURLE_OK) {
+      throw std::runtime_error(std::string("curl failed: ") + curl_easy_strerror(res));
+    }
+    return Value::make_str(response);
+  }
+  if (marker == "__builtin_sqlite_query" || marker == "__builtin_sqlite_exec") {
+    if (args.size() != 2)
+      throw std::runtime_error("sqlite_query/sqlite_exec() requires 2 arguments");
+    std::string path = std::get<std::string>(args[0].v);
+    std::string sql = std::get<std::string>(args[1].v);
+    sqlite3 *db = nullptr;
+    int rc = sqlite3_open(path.c_str(), &db);
+    if (rc != SQLITE_OK) {
+      std::string err = sqlite3_errmsg(db);
+      sqlite3_close(db);
+      throw std::runtime_error("SQLite open failed: " + err);
+    }
+    if (marker == "__builtin_sqlite_exec") {
+      char *errmsg = nullptr;
+      rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errmsg);
+      if (rc != SQLITE_OK) {
+        std::string err = errmsg ? errmsg : "unknown";
+        sqlite3_free(errmsg);
+        sqlite3_close(db);
+        throw std::runtime_error("SQLite exec failed: " + err);
+      }
+      sqlite3_close(db);
+      return Value::make_int(1);
+    }
+    sqlite3_stmt *stmt = nullptr;
+    rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    if (rc != SQLITE_OK) {
+      std::string err = sqlite3_errmsg(db);
+      sqlite3_close(db);
+      throw std::runtime_error("SQLite prepare failed: " + err);
+    }
+    std::vector<Value> rows;
+    while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+      std::vector<Value> row;
+      int cols = sqlite3_column_count(stmt);
+      for (int col = 0; col < cols; ++col) {
+        const unsigned char *text = sqlite3_column_text(stmt, col);
+        row.push_back(Value::make_str(text ? reinterpret_cast<const char *>(text) : ""));
+      }
+      rows.push_back(Value::make_list(std::move(row)));
+    }
+    if (rc != SQLITE_DONE) {
+      std::string err = sqlite3_errmsg(db);
+      sqlite3_finalize(stmt);
+      sqlite3_close(db);
+      throw std::runtime_error("SQLite step failed: " + err);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return Value::make_list(rows);
   }
   if (marker == "__builtin_random_int") {
     if (args.size() < 1 || args.size() > 2)

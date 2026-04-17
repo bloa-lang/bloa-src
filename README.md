@@ -12,6 +12,11 @@ A minimalist interpreter for the **bloa** scripting language.
 - Built-in functions: print, range, len, str, int, float, append
 - Lists, strings, numbers, booleans
 - I/O: say (print), ask (input)
+- `echo`, `isset`, `unset`
+- `new` object creation for Java-style instantiation
+- BAAR archive support for `.baar` packages and built-in `baar_*` helpers
+- cURL support: `curl_get`, `curl_post`, `curl_request`
+- SQLite utilities: `sqlite_query`, `sqlite_exec`
 - Exception handling: try/except
 - Standard library in `stdlib/` (math, io, string)
 
@@ -74,6 +79,53 @@ class Dog extends Animal {
 
 d = Dog()
 d.speak()
+```
+
+### Java-style object construction
+```
+class Counter {
+  function __init__(self, start) {
+    self.value = start
+  }
+  function inc(self) {
+    self.value = self.value + 1
+  }
+}
+
+c = new Counter(10)
+c.inc()
+say c.value
+```
+
+### BAAR packages and archives
+```
+files = [
+  ["main.bloa", "say \"Hello from archive\"\n"],
+  ["data.txt", "archive payload"]
+]
+baar_create("app.baar", files)
+list = baar_list("app.baar")
+say list
+content = baar_read("app.baar", "data.txt")
+say content
+```
+
+A `.baar` file can also be executed directly with `bloa app.baar`. The interpreter will choose `main.bloa`, `index.bloa`, the first `.bloa` entry, or the first file in the archive.
+
+### HTTP/cURL helpers
+```
+response = curl_get("https://example.com/data")
+json = curl_post("https://example.com/api", "payload")
+response = curl_request("https://example.com/api", "PUT", "body")
+```
+
+### SQLite helpers
+```
+rows = sqlite_query("data.db", "SELECT id, name FROM users")
+for (rows as row) {
+  say row[0] + ": " + row[1]
+}
+sqlite_exec("data.db", "CREATE TABLE IF NOT EXISTS users(id INTEGER, name TEXT)")
 ```
 
 ### Modules
@@ -184,4 +236,10 @@ sudo dpkg-deb --build package_all bloa_0.2.0-alpha_all.deb```
 
 ## Releases
 
+This is the `1.0.0-RC1` release candidate of BLOA.
+
 A GitHub Actions workflow (`.github/workflows/release.yml`) builds both architectures and packages `.deb` files when a tag is pushed.
+
+## Older changelogs
+
+See `older changelogs/1.0.0.md` for release notes on version 1.0.0-RC1.
