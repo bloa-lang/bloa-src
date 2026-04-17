@@ -78,7 +78,11 @@ jobs:
           mkdir -p "$BUILD_DIR"
 
           if [[ "${{ matrix.target }}" == "windows-x86" ]]; then
-            cmake -S . -B "$BUILD_DIR" -A Win32 -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B "$BUILD_DIR" -A Win32 -DCMAKE_BUILD_TYPE=Release \
+              -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
+          elif [[ "${{ matrix.target }}" == "windows-x64" ]]; then
+            cmake -S . -B "$BUILD_DIR" -A x64 -DCMAKE_BUILD_TYPE=Release \
+              -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
           elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
             cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
           elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
@@ -121,6 +125,7 @@ jobs:
         run: |
           mkdir -p dist
           VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}"
+          DEB_VERSION="${VERSION#v}"
           BUILD_DIR="build-${{ matrix.target }}"
           
           case "${{ matrix.target }}" in
@@ -151,7 +156,7 @@ jobs:
               chmod 0755 "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin/bloa"
               cat > "$L_ROOT/DEBIAN/control" <<EOF
           Package: bloa
-          Version: $VERSION
+          Version: $DEB_VERSION
           Section: utils
           Priority: optional
           Architecture: $arch
@@ -174,7 +179,7 @@ jobs:
               chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
               cat > "$T_ROOT/DEBIAN/control" <<EOF
           Package: bloa
-          Version: $VERSION
+          Version: $DEB_VERSION
           Section: utils
           Priority: optional
           Architecture: $t_arch
@@ -196,7 +201,7 @@ jobs:
               chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
               cat > "$T_ROOT/DEBIAN/control" <<EOF
           Package: bloa
-          Version: $VERSION
+          Version: $DEB_VERSION
           Section: utils
           Priority: optional
           Architecture: $t_arch
