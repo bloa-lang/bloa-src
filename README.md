@@ -234,6 +234,8 @@ EOF
 chmod 0755 package_all/DEBIAN
 sudo dpkg-deb --build package_all bloa_0.2.0-alpha_all.deb```
 
+```
+
 ## Releases
 
 This is the `1.0.0-RC1` release candidate of BLOA.
