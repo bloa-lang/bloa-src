@@ -33,6 +33,10 @@ jobs:
             target: linux-arm64
           - os: ubuntu-latest
             target: linux-armhf
+          - os: ubuntu-latest
+            target: android-arm64
+          - os: ubuntu-latest
+            target: android-armv7
           - os: macos-latest
             target: macos-universal
 
@@ -47,81 +51,103 @@ jobs:
           sudo apt-get update
           case "${{ matrix.target }}" in
             linux-i386)
-              sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386
+              sudo apt-get install -y gcc-multilib g++-multilib libc6-dev-i386 libcurl4-openssl-dev libsqlite3-dev
               ;;
             linux-arm64)
-              sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+              sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libcurl4-openssl-dev libsqlite3-dev
               ;;
             linux-armhf)
-              sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+              sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libcurl4-openssl-dev libsqlite3-dev
               ;;
             linux-amd64)
-              echo "Amd64 uses default runner toolchain. Skipping..."
+              sudo apt-get install -y libcurl4-openssl-dev libsqlite3-dev
               ;;
           esac
+
+      - name: Install Android NDK
+        if: startsWith(matrix.target, 'android-')
+        uses: android-actions/setup-android@v4
+        with:
+          api-level: 24
+          ndk: '25.2.9519653'
 
       - name: Build Binary
         shell: bash
         run: |
+          BUILD_DIR="build-${{ matrix.target }}"
+          mkdir -p "$BUILD_DIR"
+
           if [[ "${{ matrix.target }}" == "windows-x86" ]]; then
-            cmake -S . -B build -A Win32 -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B "$BUILD_DIR" -A Win32 -DCMAKE_BUILD_TYPE=Release
           elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
           elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_SYSTEM_NAME=Linux \
               -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
               -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
               -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
           elif [[ "${{ matrix.target }}" == "linux-armhf" ]]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_SYSTEM_NAME=Linux \
               -DCMAKE_SYSTEM_PROCESSOR=arm \
               -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
               -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++
           elif [[ "${{ matrix.target }}" == "macos-universal" ]]; then
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+          elif [[ "${{ matrix.target }}" == "android-arm64" ]]; then
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI=arm64-v8a \
+              -DANDROID_PLATFORM=android-24 \
+              -DANDROID_STL=c++_static \
+              -DBLOA_USE_CURL=OFF \
+              -DBLOA_USE_SQLITE=OFF
+          elif [[ "${{ matrix.target }}" == "android-armv7" ]]; then
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI=armeabi-v7a \
+              -DANDROID_PLATFORM=android-24 \
+              -DANDROID_STL=c++_static \
+              -DBLOA_USE_CURL=OFF \
+              -DBLOA_USE_SQLITE=OFF
           else
-            cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
           fi
-          cmake --build build --config Release
+          cmake --build "$BUILD_DIR" --config Release
 
       - name: Packaging
         shell: bash
         run: |
           mkdir -p dist
           VERSION="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || github.ref_name }}"
+          BUILD_DIR="build-${{ matrix.target }}"
           
           case "${{ matrix.target }}" in
             windows-*)
               arch="${{ matrix.target == 'windows-x64' && 'x64' || 'x86' }}"
-              cp build/Release/bloa.exe "dist/bloa_${VERSION}_windows_${arch}.exe"
+              cp "$BUILD_DIR/Release/bloa.exe" "dist/bloa_${VERSION}_windows_${arch}.exe"
               ;;
             
             macos-universal)
-              cp build/bloa "dist/bloa_${VERSION}_macos_universal"
+              cp "$BUILD_DIR/bloa" "dist/bloa_${VERSION}_macos_universal"
               chmod +x "dist/bloa_${VERSION}_macos_universal"
               ;;
             
             linux-*)
               if [[ "${{ matrix.target }}" == "linux-amd64" ]]; then
                 arch="amd64"
-                t_arch="x86_64"
               elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
                 arch="i386"
-                t_arch="i686"
               elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
                 arch="arm64"
-                t_arch="aarch64"
               else
                 arch="armhf"
-                t_arch="arm"
               fi
               
-              # Linux Standard .deb
               L_ROOT="pkg_linux_${arch}"
               mkdir -p "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin"
-              cp build/bloa "$L_ROOT/usr/bin/bloa"
+              cp "$BUILD_DIR/bloa" "$L_ROOT/usr/bin/bloa"
               chmod 0755 "$L_ROOT/DEBIAN" "$L_ROOT/usr/bin/bloa"
               cat > "$L_ROOT/DEBIAN/control" <<EOF
           Package: bloa
@@ -134,11 +160,17 @@ jobs:
           EOF
               dpkg-deb --build "$L_ROOT" "dist/bloa_${VERSION}_linux_${arch}.deb"
               
-              # Termux .deb
+              cp "$BUILD_DIR/bloa" "dist/bloa_${VERSION}_linux_${arch}_bin"
+              chmod +x "dist/bloa_${VERSION}_linux_${arch}_bin"
+              ;;
+            
+            android-arm64)
+              arch="arm64"
+              t_arch="aarch64"
               T_ROOT="pkg_termux_${t_arch}"
               T_PFX="data/data/com.termux/files/usr"
               mkdir -p "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin"
-              cp build/bloa "$T_ROOT/$T_PFX/bin/bloa"
+              cp "$BUILD_DIR/bloa" "$T_ROOT/$T_PFX/bin/bloa"
               chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
               cat > "$T_ROOT/DEBIAN/control" <<EOF
           Package: bloa
@@ -150,10 +182,30 @@ jobs:
           Description: Bloa runtime for Termux ($t_arch)
           EOF
               dpkg-deb --build "$T_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb"
-              
-              # Standard Binaries
-              cp build/bloa "dist/bloa_${VERSION}_linux_${arch}_bin"
-              chmod +x "dist/bloa_${VERSION}_linux_${arch}_bin"
+              cp "$BUILD_DIR/bloa" "dist/bloa_${VERSION}_android_${arch}_bin"
+              chmod +x "dist/bloa_${VERSION}_android_${arch}_bin"
+              ;;
+            
+            android-armv7)
+              arch="armhf"
+              t_arch="arm"
+              T_ROOT="pkg_termux_${t_arch}"
+              T_PFX="data/data/com.termux/files/usr"
+              mkdir -p "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin"
+              cp "$BUILD_DIR/bloa" "$T_ROOT/$T_PFX/bin/bloa"
+              chmod 0755 "$T_ROOT/DEBIAN" "$T_ROOT/$T_PFX/bin/bloa"
+              cat > "$T_ROOT/DEBIAN/control" <<EOF
+          Package: bloa
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: $t_arch
+          Maintainer: bloa-lang
+          Description: Bloa runtime for Termux ($t_arch)
+          EOF
+              dpkg-deb --build "$T_ROOT" "dist/bloa_${VERSION}_termux_${t_arch}.deb"
+              cp "$BUILD_DIR/bloa" "dist/bloa_${VERSION}_android_${arch}_bin"
+              chmod +x "dist/bloa_${VERSION}_android_${arch}_bin"
               ;;
           esac
 

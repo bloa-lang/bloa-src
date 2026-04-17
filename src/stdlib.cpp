@@ -4,13 +4,17 @@
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#ifdef BLOA_USE_CURL
 #include <curl/curl.h>
+#endif
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <random>
+#ifdef BLOA_USE_SQLITE
 #include <sqlite3.h>
+#endif
 #include <sstream>
 
 namespace fs = std::filesystem;
@@ -56,6 +60,7 @@ static const std::vector<Value> &as_list(const Value &v) {
   return std::get<std::vector<Value>>(v.v);
 }
 
+#ifdef BLOA_USE_CURL
 static size_t curl_write_callback(void *contents, size_t size, size_t nmemb,
                                   void *userp) {
   size_t total = size * nmemb;
@@ -63,7 +68,9 @@ static size_t curl_write_callback(void *contents, size_t size, size_t nmemb,
   buffer->append(static_cast<char *>(contents), total);
   return total;
 }
+#endif
 
+#ifdef BLOA_USE_SQLITE
 static void sqlite_throw_if_error(int result, sqlite3 *db) {
   if (result != SQLITE_OK) {
     std::string err = sqlite3_errmsg(db);
@@ -71,6 +78,7 @@ static void sqlite_throw_if_error(int result, sqlite3 *db) {
     throw std::runtime_error("SQLite error: " + err);
   }
 }
+#endif
 
 static const std::string archive_magic = "BLOAARCHIVE\n";
 
@@ -186,13 +194,17 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("baar_read", Value::make_str("__builtin_baar_read"));
 
   // HTTP and network helpers
+#ifdef BLOA_USE_CURL
   env->set("curl_get", Value::make_str("__builtin_curl_get"));
   env->set("curl_post", Value::make_str("__builtin_curl_post"));
   env->set("curl_request", Value::make_str("__builtin_curl_request"));
+#endif
 
   // SQLite helpers
+#ifdef BLOA_USE_SQLITE
   env->set("sqlite_query", Value::make_str("__builtin_sqlite_query"));
   env->set("sqlite_exec", Value::make_str("__builtin_sqlite_exec"));
+#endif
 }
 
 Value handle_builtin(const std::string &marker,
@@ -608,6 +620,7 @@ Value handle_builtin(const std::string &marker,
     }
     throw std::runtime_error("Baar entry not found: " + name);
   }
+#ifdef BLOA_USE_CURL
   if (marker == "__builtin_curl_get" || marker == "__builtin_curl_post" ||
       marker == "__builtin_curl_request") {
     if (args.empty() || args.size() > 3)
@@ -652,6 +665,8 @@ Value handle_builtin(const std::string &marker,
     }
     return Value::make_str(response);
   }
+#endif
+#ifdef BLOA_USE_SQLITE
   if (marker == "__builtin_sqlite_query" || marker == "__builtin_sqlite_exec") {
     if (args.size() != 2)
       throw std::runtime_error("sqlite_query/sqlite_exec() requires 2 arguments");
@@ -703,6 +718,7 @@ Value handle_builtin(const std::string &marker,
     sqlite3_close(db);
     return Value::make_list(rows);
   }
+#endif
   if (marker == "__builtin_random_int") {
     if (args.size() < 1 || args.size() > 2)
       throw std::runtime_error("random_int() requires 1 or 2 arguments");
