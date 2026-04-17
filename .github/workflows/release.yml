@@ -84,19 +84,22 @@ jobs:
             cmake -S . -B "$BUILD_DIR" -A x64 -DCMAKE_BUILD_TYPE=Release \
               -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
           elif [[ "${{ matrix.target }}" == "linux-i386" ]]; then
-            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32
+            cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 -DCMAKE_CXX_FLAGS=-m32 \
+              -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
           elif [[ "${{ matrix.target }}" == "linux-arm64" ]]; then
             cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_SYSTEM_NAME=Linux \
               -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
               -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+              -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+              -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
           elif [[ "${{ matrix.target }}" == "linux-armhf" ]]; then
             cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_SYSTEM_NAME=Linux \
               -DCMAKE_SYSTEM_PROCESSOR=arm \
               -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc \
-              -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++
+              -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ \
+              -DBLOA_USE_CURL=OFF -DBLOA_USE_SQLITE=OFF
           elif [[ "${{ matrix.target }}" == "macos-universal" ]]; then
             cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
           elif [[ "${{ matrix.target }}" == "android-arm64" ]]; then
