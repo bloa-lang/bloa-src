@@ -18,12 +18,20 @@ struct ObjectInstance {
       : class_name(std::move(c)), properties(std::move(p)) {}
 };
 
+struct Reference {
+  std::shared_ptr<Environment> env;
+  std::string name;
+  Reference(std::shared_ptr<Environment> e, std::string n)
+      : env(std::move(e)), name(std::move(n)) {}
+};
+
 struct Value;
 using ValuePtr = std::shared_ptr<Value>;
 
 struct Value {
   std::variant<std::monostate, int64_t, double, std::string, bool,
-               std::vector<Value>, std::shared_ptr<ObjectInstance>>
+               std::vector<Value>, std::shared_ptr<ObjectInstance>,
+               std::shared_ptr<Reference>>
       v;
 
   Value() = default;
@@ -62,6 +70,21 @@ struct Value {
     return val;
   }
 
+  static Value make_ref(std::shared_ptr<Environment> env,
+                        std::string name) {
+    Value val;
+    val.v = std::make_shared<Reference>(std::move(env), std::move(name));
+    return val;
+  }
+
+  bool is_reference() const {
+    return std::holds_alternative<std::shared_ptr<Reference>>(v);
+  }
+
+  const Reference &as_reference() const {
+    return *std::get<std::shared_ptr<Reference>>(v);
+  }
+
   std::string to_string() const;
 
   double as_number() const {
@@ -85,14 +108,26 @@ struct Variable {
 struct Environment {
   Environment(std::shared_ptr<Environment> parent = nullptr);
   std::optional<Value> get(const std::string &name) const;
+  std::optional<Value> get_local(const std::string &name) const;
   void set(const std::string &name, Value val);
   bool has(const std::string &name) const;
+  bool has_local(const std::string &name) const;
   bool remove(const std::string &name);
   std::shared_ptr<Environment> parent;
 
  private:
   std::unordered_map<std::string, Variable> vars;
 };
+
+inline std::optional<Value> Environment::get_local(const std::string &name) const {
+  auto it = vars.find(name);
+  if (it != vars.end()) return it->second.value;
+  return std::nullopt;
+}
+
+inline bool Environment::has_local(const std::string &name) const {
+  return vars.find(name) != vars.end();
+}
 
 inline bool Environment::has(const std::string &name) const {
   if (vars.find(name) != vars.end()) return true;

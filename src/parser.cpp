@@ -10,7 +10,7 @@ namespace bloa {
 std::vector<std::string> split_lines(const std::string &code) {
   std::vector<std::string> out;
   std::string line;
-  std::istringstream iss(code);
+  std::istringstream iss(remove_comments(code));
   while (std::getline(iss, line)) {
     out.push_back(line);
   }
@@ -82,6 +82,66 @@ static std::string strip_trailing_semicolon(std::string line) {
     return rtrim(line);
   }
   return line;
+}
+
+static std::string remove_comments(const std::string &code) {
+  std::string out;
+  bool in_single = false;
+  bool in_double = false;
+  bool in_block = false;
+
+  for (size_t i = 0; i < code.size(); ++i) {
+    char c = code[i];
+
+    if (in_block) {
+      if (c == '*' && i + 1 < code.size() && code[i + 1] == '/') {
+        in_block = false;
+        ++i;
+      } else if (c == '\n') {
+        out.push_back(c);
+      }
+      continue;
+    }
+
+    if (in_single) {
+      if (c == '\n') {
+        in_single = false;
+        out.push_back(c);
+      }
+      continue;
+    }
+
+    if (c == '"' && !in_single) {
+      in_double = !in_double;
+      out.push_back(c);
+      continue;
+    }
+    if (c == '\'' && !in_double) {
+      in_single = !in_single;
+      out.push_back(c);
+      continue;
+    }
+
+    if (!in_single && !in_double) {
+      if (c == '/' && i + 1 < code.size()) {
+        if (code[i + 1] == '/') {
+          // single-line comment
+          i += 1;
+          while (i + 1 < code.size() && code[i + 1] != '\n') ++i;
+          continue;
+        }
+        if (code[i + 1] == '*') {
+          in_block = true;
+          ++i;
+          continue;
+        }
+      }
+    }
+
+    out.push_back(c);
+  }
+
+  return out;
 }
 
 std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,

@@ -9,7 +9,7 @@ A minimalist interpreter for the **bloa** scripting language.
 - Functions with parameters
 - Classes with methods and inheritance (`extends`)
 - Modules: `use` for importing, `require` for including files
-- Built-in functions: print, range, len, str, int, float, append
+- Built-in functions: print, range, len, str, int, float, append, ref, deref, set_ref, is_ref
 - Lists, strings, numbers, booleans
 - I/O: say (print), ask (input)
 - `echo`, `isset`, `unset`
@@ -21,7 +21,33 @@ A minimalist interpreter for the **bloa** scripting language.
 - Standard library in `stdlib/` (math, io, string)
 
 ## Syntax Examples
+### Comments
+```
+// This is a single-line comment
+say "Hello"
+/* This is a
+   block comment */
+say "World"
+```
 
+### Pointer-like references
+```
+x = 42
+p = ref("x")
+say deref(p)
+set_ref(p, 100)
+say x
+say is_ref(p)
+```
+
+### Prefix reference operators
+```
+y = 10
+p = &y
+say *p
+set_ref(p, 20)
+say y
+```
 ### Variables and Expressions
 ```
 x = 42

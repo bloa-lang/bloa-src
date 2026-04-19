@@ -23,6 +23,17 @@ using NodePtr = std::shared_ptr<Node>;
 struct BreakException {};
 struct ContinueException {};
 
+static Value resolve_reference(const Value &v) {
+  if (std::holds_alternative<std::shared_ptr<Reference>>(v.v)) {
+    auto ref = std::get<std::shared_ptr<Reference>>(v.v);
+    auto target = ref->env->get(ref->name);
+    if (!target)
+      throw std::runtime_error("Invalid reference target: " + ref->name);
+    return resolve_reference(*target);
+  }
+  return v;
+}
+
 static std::string value_to_string(const Value &v) {
   if (std::holds_alternative<std::monostate>(v.v)) return "None";
   if (std::holds_alternative<int64_t>(v.v))
@@ -52,19 +63,25 @@ static std::string value_to_string(const Value &v) {
     const auto &obj = std::get<std::shared_ptr<ObjectInstance>>(v.v);
     return "<" + obj->class_name + " object>";
   }
+  if (std::holds_alternative<std::shared_ptr<Reference>>(v.v)) {
+    const auto &ref = std::get<std::shared_ptr<Reference>>(v.v);
+    return "<ref " + ref->name + ">";
+  }
   return "<unknown>";
 }
 
 static bool is_list_value(const Value &v) {
-  return std::holds_alternative<std::vector<Value>>(v.v);
+  Value resolved = resolve_reference(v);
+  return std::holds_alternative<std::vector<Value>>(resolved.v);
 }
 
 static double value_as_number(const Value &v) {
-  if (std::holds_alternative<int64_t>(v.v))
-    return static_cast<double>(std::get<int64_t>(v.v));
-  if (std::holds_alternative<double>(v.v)) return std::get<double>(v.v);
-  if (std::holds_alternative<std::string>(v.v)) {
-    const std::string &s = std::get<std::string>(v.v);
+  Value resolved = resolve_reference(v);
+  if (std::holds_alternative<int64_t>(resolved.v))
+    return static_cast<double>(std::get<int64_t>(resolved.v));
+  if (std::holds_alternative<double>(resolved.v)) return std::get<double>(resolved.v);
+  if (std::holds_alternative<std::string>(resolved.v)) {
+    const std::string &s = std::get<std::string>(resolved.v);
     try {
       return std::stod(s);
     } catch (...) {
@@ -75,21 +92,23 @@ static double value_as_number(const Value &v) {
 }
 
 static bool value_is_true(const Value &v) {
-  if (std::holds_alternative<std::monostate>(v.v)) return false;
-  if (std::holds_alternative<bool>(v.v)) return std::get<bool>(v.v);
-  if (std::holds_alternative<int64_t>(v.v)) return std::get<int64_t>(v.v) != 0;
-  if (std::holds_alternative<double>(v.v)) return std::get<double>(v.v) != 0.0;
-  if (std::holds_alternative<std::string>(v.v))
-    return !std::get<std::string>(v.v).empty();
-  if (std::holds_alternative<std::vector<Value>>(v.v))
-    return !std::get<std::vector<Value>>(v.v).empty();
-  if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(v.v))
+  Value resolved = resolve_reference(v);
+  if (std::holds_alternative<std::monostate>(resolved.v)) return false;
+  if (std::holds_alternative<bool>(resolved.v)) return std::get<bool>(resolved.v);
+  if (std::holds_alternative<int64_t>(resolved.v)) return std::get<int64_t>(resolved.v) != 0;
+  if (std::holds_alternative<double>(resolved.v)) return std::get<double>(resolved.v) != 0.0;
+  if (std::holds_alternative<std::string>(resolved.v))
+    return !std::get<std::string>(resolved.v).empty();
+  if (std::holds_alternative<std::vector<Value>>(resolved.v))
+    return !std::get<std::vector<Value>>(resolved.v).empty();
+  if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(resolved.v))
     return true;  // all objects are truthy
   return false;
 }
 
-static const std::vector<Value> &as_list(const Value &v) {
-  return std::get<std::vector<Value>>(v.v);
+static std::vector<Value> as_list(const Value &v) {
+  Value resolved = resolve_reference(v);
+  return std::get<std::vector<Value>>(resolved.v);
 }
 
 Environment::Environment(std::shared_ptr<Environment> parent_)
@@ -660,6 +679,28 @@ Value Interpreter::parse_expression(std::string expr,
       if (match('!')) {
         Value operand = parse_unary();  // Recursive for !!x
         return Value::make_bool(!value_is_true(operand));
+      }
+      if (match('&')) {
+        skip_space();
+        if (pos >= s.size() || !is_ident_start(s[pos]))
+          error("Expected identifier after '&'");
+        size_t start = pos;
+        ++pos;
+        while (pos < s.size() && is_ident_continue(s[pos])) ++pos;
+        std::string name = s.substr(start, pos - start);
+        auto ref_env = env;
+        while (ref_env && !ref_env->has_local(name)) ref_env = ref_env->parent;
+        if (!ref_env) error("Undefined variable '" + name + "'");
+        return Value::make_ref(ref_env, name);
+      }
+      if (match('*')) {
+        Value operand = parse_unary();
+        if (!operand.is_reference())
+          error("Cannot dereference non-pointer value");
+        const auto &ref = operand.as_reference();
+        auto target = ref.env->get(ref.name);
+        if (!target) error("Invalid reference target: " + ref.name);
+        return *target;
       }
       return parse_primary();
     }
