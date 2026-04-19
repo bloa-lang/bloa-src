@@ -914,6 +914,9 @@ Value Interpreter::execute_block(const NodeList &nodes,
         } catch (...) {
         }
         env->set(a->var, Value::make_str(input));
+      } else if (auto decl = std::dynamic_pointer_cast<Declare>(node)) {
+        Value val = eval_expr(decl->expr, env);
+        env->set_local(decl->name, val);
       } else if (auto asg = std::dynamic_pointer_cast<Assign>(node)) {
         Value val = eval_expr(asg->expr, env);
         env->set(asg->name, val);

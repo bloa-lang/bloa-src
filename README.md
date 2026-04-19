@@ -5,11 +5,12 @@ A minimalist interpreter for the **bloa** scripting language.
 ## Features
 
 - Variables and expressions (arithmetic, logic, comparison)
-- Control flow: if/else, while, foreach/for-in, repeat, break, continue, try/except
+- Control flow: if/else, while, for/foreach/for-in, repeat, break, continue, try/except
+- `let` / `var` local declarations
 - Functions with parameters
 - Classes with methods and inheritance (`extends`)
 - Modules: `use` for importing, `require` for including files
-- Built-in functions: print, range, len, str, int, float, append, ref, deref, set_ref, is_ref
+- Built-in functions: print, range, len, str, int, float, append, ref, deref, set_ref, is_ref, copy, clone, slice, sorted, sum, min, max, type, vars, keys, get, set, mysql_connect, mysql_query, mysql_exec, mysql_close, mysql_escape
 - Lists, strings, numbers, booleans
 - I/O: say (print), ask (input)
 - `echo`, `isset`, `unset`
@@ -17,6 +18,9 @@ A minimalist interpreter for the **bloa** scripting language.
 - BAAR archive support for `.baar` packages and built-in `baar_*` helpers
 - cURL support: `curl_get`, `curl_post`, `curl_request`
 - SQLite utilities: `sqlite_query`, `sqlite_exec`
+- JSON utilities: `json_parse`, `json_stringify`
+- CSV utilities: `csv_parse`, `csv_stringify`
+- Filesystem helpers: `path_is_absolute`, `path_normalize`, `file_ext`
 - Exception handling: try/except
 - Standard library in `stdlib/` (math, io, string)
 
@@ -50,8 +54,8 @@ say y
 ```
 ### Variables and Expressions
 ```
-x = 42
-y = x + 10
+let x = 42
+var y = x + 10
 say "Result: " + str(y)
 ```
 
@@ -71,6 +75,10 @@ foreach (range(0, 5) as value) {
     break;
   }
   say value
+}
+
+for (item in ["a", "b", "c"]) {
+  say item
 }
 
 try {
@@ -205,6 +213,36 @@ The standard library is built-in and automatically available, providing function
 - `random_int(max)` or `random_int(min, max)`: Random integer
 - `random_float(max)` or `random_float(min, max)`: Random float
 - `now()`: Current timestamp in milliseconds
+- `system(cmd)`: Run shell command and return exit status
+- `shell(cmd)`: Run shell command and return stdout output
+- `getenv(name)`: Read environment variable
+- `setenv(name, value)`: Set environment variable
+- `sleep(ms)`: Sleep for milliseconds
+- `pwd()` / `cwd()`: Get current working directory
+- `path_join(a, b, ...)`: Join path segments
+- `path_is_absolute(path)`: Check if a path is absolute
+- `path_normalize(path)`: Normalize a filesystem path
+- `file_ext(path)`: Get the file extension
+- `basename(path)`: Get filename component
+- `dirname(path)`: Parent directory
+- `mkdirs(path)`: Create directories recursively
+- `glob(pattern)`: Find files using wildcard patterns
+- `json_parse(text)`: Parse JSON text into objects and lists
+- `json_stringify(value)`: Serialize a value to JSON text
+- `csv_parse(text, delim?)`: Parse CSV text into rows
+- `csv_stringify(rows, delim?)`: Serialize rows into CSV text
+- `base64_encode(text)`: Encode text to Base64
+- `base64_decode(text)`: Decode Base64 text
+- `uuid4()`: Generate a random UUID v4 string
+- `regex_match(text, pattern)`: Match text against a regular expression
+- `regex_replace(text, pattern, replacement)`: Replace text using regex
+
+### MySQL Helpers
+- `mysql_connect(host, user, pass, db)` or `mysql_connect(host, user, pass, db, port)`: Open MySQL connection and return connection id
+- `mysql_query(conn, sql)`: Execute SELECT/statement and return rows as list of lists
+- `mysql_exec(conn, sql)`: Execute an update/insert/delete and return affected rows count
+- `mysql_escape(conn, value)`: Escape string for SQL safety
+- `mysql_close(conn)`: Close the MySQL connection
 
 All functions are available globally.
 
@@ -214,6 +252,18 @@ say "Pi value: " + str(pi())
 say "Uppercase: " + to_upper("hello")
 ```
 
+### MySQL example
+```bloa
+conn = mysql_connect("127.0.0.1", "user", "pass", "testdb")
+rows = mysql_query(conn, "SELECT id, name FROM users")
+for (row as record) {
+  say "id=" + row[0] + " name=" + row[1]
+}
+affected = mysql_exec(conn, "UPDATE users SET active=1 WHERE active=0")
+say "Updated: " + str(affected)
+mysql_close(conn)
+```
+
 ## Building
 
 ```sh
@@ -221,6 +271,16 @@ mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 cmake --build .
 ```
+
+## Testing
+
+After building, run:
+
+```sh
+cmake --build build --target check
+```
+
+This executes a small test harness that verifies JSON, CSV, filesystem, base64, regex, and other runtime helpers.
 
 To create Debian packages for amd64 and i386 (requires multilib tools):
 

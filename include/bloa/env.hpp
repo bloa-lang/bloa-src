@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -85,8 +86,6 @@ struct Value {
     return *std::get<std::shared_ptr<Reference>>(v);
   }
 
-  std::string to_string() const;
-
   double as_number() const {
     if (std::holds_alternative<int64_t>(v)) return (double)std::get<int64_t>(v);
     if (std::holds_alternative<double>(v)) return std::get<double>(v);
@@ -97,6 +96,37 @@ struct Value {
     if (std::holds_alternative<std::vector<Value>>(v))
       return std::get<std::vector<Value>>(v);
     throw std::runtime_error("Value is not a list");
+  }
+
+  std::string to_string() const {
+    if (std::holds_alternative<std::monostate>(v)) return "None";
+    if (std::holds_alternative<int64_t>(v)) return std::to_string(std::get<int64_t>(v));
+    if (std::holds_alternative<double>(v)) {
+      double d = std::get<double>(v);
+      if (std::floor(d) == d) return std::to_string(static_cast<int64_t>(d));
+      return std::to_string(d);
+    }
+    if (std::holds_alternative<std::string>(v)) return std::get<std::string>(v);
+    if (std::holds_alternative<bool>(v)) return std::get<bool>(v) ? "true" : "false";
+    if (std::holds_alternative<std::vector<Value>>(v)) {
+      std::string out = "[";
+      const auto &list = std::get<std::vector<Value>>(v);
+      for (size_t i = 0; i < list.size(); ++i) {
+        if (i > 0) out += ", ";
+        out += list[i].to_string();
+      }
+      out += "]";
+      return out;
+    }
+    if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(v)) {
+      const auto &obj = std::get<std::shared_ptr<ObjectInstance>>(v);
+      return "<" + obj->class_name + " object>";
+    }
+    if (std::holds_alternative<std::shared_ptr<Reference>>(v)) {
+      const auto &ref = std::get<std::shared_ptr<Reference>>(v);
+      return "<ref " + ref->name + ">";
+    }
+    return "<unknown>";
   }
 };
 
@@ -110,9 +140,12 @@ struct Environment {
   std::optional<Value> get(const std::string &name) const;
   std::optional<Value> get_local(const std::string &name) const;
   void set(const std::string &name, Value val);
+  void set_local(const std::string &name, Value val);
   bool has(const std::string &name) const;
   bool has_local(const std::string &name) const;
   bool remove(const std::string &name);
+  std::vector<std::string> local_keys() const;
+  std::vector<std::string> keys() const;
   std::shared_ptr<Environment> parent;
 
  private:
@@ -123,6 +156,28 @@ inline std::optional<Value> Environment::get_local(const std::string &name) cons
   auto it = vars.find(name);
   if (it != vars.end()) return it->second.value;
   return std::nullopt;
+}
+
+inline void Environment::set_local(const std::string &name, Value val) {
+  vars[name] = Variable{std::move(val), std::string{}};
+}
+
+inline std::vector<std::string> Environment::local_keys() const {
+  std::vector<std::string> result;
+  result.reserve(vars.size());
+  for (const auto &entry : vars) {
+    result.push_back(entry.first);
+  }
+  return result;
+}
+
+inline std::vector<std::string> Environment::keys() const {
+  std::vector<std::string> result = local_keys();
+  if (parent) {
+    std::vector<std::string> parent_keys = parent->keys();
+    result.insert(result.end(), parent_keys.begin(), parent_keys.end());
+  }
+  return result;
 }
 
 inline bool Environment::has_local(const std::string &name) const {

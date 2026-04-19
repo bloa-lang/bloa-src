@@ -30,6 +30,12 @@ struct Assign : Node {
   Assign(std::string n, std::string e)
       : name(std::move(n)), expr(std::move(e)) {}
 };
+struct Declare : Node {
+  std::string name;
+  std::string expr;
+  Declare(std::string n, std::string e)
+      : name(std::move(n)), expr(std::move(e)) {}
+};
 struct If : Node {
   std::string cond;
   NodeList then_block;

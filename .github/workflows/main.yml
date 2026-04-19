@@ -22,3 +22,21 @@ jobs:
       - name: cppcheck
         run: |
           cppcheck --enable=all --error-exitcode=1 -I include .
+
+  build_and_test:
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y cmake build-essential libcurl4-openssl-dev libsqlite3-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBLOA_USE_MYSQL=OFF
+
+      - name: Build and run tests
+        run: cmake --build build --target check -- -j$(nproc)

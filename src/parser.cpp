@@ -7,6 +7,8 @@
 
 namespace bloa {
 
+static std::string remove_comments(const std::string &code);
+
 std::vector<std::string> split_lines(const std::string &code) {
   std::vector<std::string> out;
   std::string line;
@@ -253,20 +255,32 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       continue;
     }
 
-    /* foreach / for-in */
-    if ((starts_with(line, "foreach (") || starts_with(line, "for-in (")) &&
+    /* foreach / for-in / for syntax */
+    if ((starts_with(line, "foreach (") || starts_with(line, "for-in (") || starts_with(line, "for (")) &&
         line.back() == '{') {
       size_t start = line.find('(');
       std::string header = line.substr(start + 1, line.size() - start - 4);
-      auto pos = header.find(" as ");
-      if (pos == std::string::npos)
-        throw_parse_error(idx + 1,
-                          "Invalid foreach/for-in syntax (expected 'as' in header)",
-                          raw_line, first_nonspace_col(raw_line));
-      std::string iterable = header.substr(0, pos);
-      std::string var = header.substr(pos + 4);
+      std::string iterable;
+      std::string var;
+      if (starts_with(line, "for (")) {
+        auto pos = header.find(" in ");
+        if (pos == std::string::npos)
+          throw_parse_error(idx + 1,
+                            "Invalid for syntax (expected 'in' in header)",
+                            raw_line, first_nonspace_col(raw_line));
+        var = header.substr(0, pos);
+        iterable = header.substr(pos + 4);
+      } else {
+        auto pos = header.find(" as ");
+        if (pos == std::string::npos)
+          throw_parse_error(idx + 1,
+                            "Invalid foreach/for-in syntax (expected 'as' in header)",
+                            raw_line, first_nonspace_col(raw_line));
+        iterable = header.substr(0, pos);
+        var = header.substr(pos + 4);
+      }
       auto res = parse_block(lines, idx + 1, base_indent);
-      nodes.push_back(std::make_shared<ForIn>(var, iterable, res.first));
+      nodes.push_back(std::make_shared<ForIn>(ltrim(rtrim(var)), ltrim(rtrim(iterable)), res.first));
       idx = res.second;
       continue;
     }
@@ -361,6 +375,15 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       std::string right = ltrim(rtrim(line.substr(pos + 1)));
       if (!right.empty() && right.back() == ';') right.pop_back();
 
+      bool is_declaration = false;
+      if (starts_with(left, "let ")) {
+        left = ltrim(left.substr(4));
+        is_declaration = true;
+      } else if (starts_with(left, "var ")) {
+        left = ltrim(left.substr(4));
+        is_declaration = true;
+      }
+
       // Check for member assignment (obj.field = value)
       size_t dot_pos = left.find('.');
       if (dot_pos != std::string::npos) {
@@ -385,13 +408,17 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
         }
       }
 
-      // Simple assignment (name = value)
+      // Simple assignment or declaration (name = value)
       if (!left.empty() && (isalpha(left[0]) || left[0] == '_')) {
         bool ok = true;
         for (char c : left)
           if (!(isalnum(c) || c == '_')) ok = false;
         if (ok) {
-          nodes.push_back(std::make_shared<Assign>(left, right));
+          if (is_declaration) {
+            nodes.push_back(std::make_shared<Declare>(left, right));
+          } else {
+            nodes.push_back(std::make_shared<Assign>(left, right));
+          }
           idx++;
           continue;
         }
