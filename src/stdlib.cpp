@@ -1,9 +1,9 @@
 #include "bloa/stdlib.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
-#include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -24,9 +24,9 @@
 #ifdef BLOA_USE_SQLITE
 #include <sqlite3.h>
 #endif
-#include <sstream>
-#include <regex>
 #include <iomanip>
+#include <regex>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -154,14 +154,30 @@ static std::string parse_json_string(const std::string &s, size_t &pos) {
       if (pos >= s.size()) throw std::runtime_error("Invalid JSON escape");
       char esc = s[pos++];
       switch (esc) {
-        case '"': result.push_back('"'); break;
-        case '\\': result.push_back('\\'); break;
-        case '/': result.push_back('/'); break;
-        case 'b': result.push_back('\b'); break;
-        case 'f': result.push_back('\f'); break;
-        case 'n': result.push_back('\n'); break;
-        case 'r': result.push_back('\r'); break;
-        case 't': result.push_back('\t'); break;
+        case '"':
+          result.push_back('"');
+          break;
+        case '\\':
+          result.push_back('\\');
+          break;
+        case '/':
+          result.push_back('/');
+          break;
+        case 'b':
+          result.push_back('\b');
+          break;
+        case 'f':
+          result.push_back('\f');
+          break;
+        case 'n':
+          result.push_back('\n');
+          break;
+        case 'r':
+          result.push_back('\r');
+          break;
+        case 't':
+          result.push_back('\t');
+          break;
         default:
           throw std::runtime_error("Unsupported JSON escape sequence");
       }
@@ -202,7 +218,8 @@ static Value parse_json_value(const std::string &s, size_t &pos) {
         ++pos;
         break;
       }
-      if (s[pos] != ',') throw std::runtime_error("Invalid JSON object delimiter");
+      if (s[pos] != ',')
+        throw std::runtime_error("Invalid JSON object delimiter");
       ++pos;
     }
     return Value::make_object("json", obj);
@@ -223,7 +240,8 @@ static Value parse_json_value(const std::string &s, size_t &pos) {
         ++pos;
         break;
       }
-      if (s[pos] != ',') throw std::runtime_error("Invalid JSON array delimiter");
+      if (s[pos] != ',')
+        throw std::runtime_error("Invalid JSON array delimiter");
       ++pos;
     }
     return Value::make_list(std::move(list));
@@ -243,17 +261,20 @@ static Value parse_json_value(const std::string &s, size_t &pos) {
   size_t start = pos;
   if (s[pos] == '-') ++pos;
   bool is_float = false;
-  while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) ++pos;
+  while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos])))
+    ++pos;
   if (pos < s.size() && s[pos] == '.') {
     is_float = true;
     ++pos;
-    while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) ++pos;
+    while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos])))
+      ++pos;
   }
   if (pos < s.size() && (s[pos] == 'e' || s[pos] == 'E')) {
     is_float = true;
     ++pos;
     if (pos < s.size() && (s[pos] == '+' || s[pos] == '-')) ++pos;
-    while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) ++pos;
+    while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos])))
+      ++pos;
   }
   if (start == pos) throw std::runtime_error("Invalid JSON value");
   std::string token = s.substr(start, pos - start);
@@ -271,17 +292,32 @@ static std::string json_escape_string(const std::string &value) {
   std::string escaped;
   for (char c : value) {
     switch (c) {
-      case '"': escaped += "\\\""; break;
-      case '\\': escaped += "\\\\"; break;
-      case '\b': escaped += "\\b"; break;
-      case '\f': escaped += "\\f"; break;
-      case '\n': escaped += "\\n"; break;
-      case '\r': escaped += "\\r"; break;
-      case '\t': escaped += "\\t"; break;
+      case '"':
+        escaped += "\\\"";
+        break;
+      case '\\':
+        escaped += "\\\\";
+        break;
+      case '\b':
+        escaped += "\\b";
+        break;
+      case '\f':
+        escaped += "\\f";
+        break;
+      case '\n':
+        escaped += "\\n";
+        break;
+      case '\r':
+        escaped += "\\r";
+        break;
+      case '\t':
+        escaped += "\\t";
+        break;
       default:
         if (static_cast<unsigned char>(c) < 0x20) {
           char buf[8];
-          std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+          std::snprintf(buf, sizeof(buf), "\\u%04x",
+                        static_cast<unsigned char>(c));
           escaped += buf;
         } else {
           escaped.push_back(c);
@@ -293,19 +329,24 @@ static std::string json_escape_string(const std::string &value) {
 
 static std::string json_stringify_value(const Value &v) {
   if (std::holds_alternative<std::monostate>(v.v)) return "null";
-  if (std::holds_alternative<bool>(v.v)) return std::get<bool>(v.v) ? "true" : "false";
-  if (std::holds_alternative<int64_t>(v.v)) return std::to_string(std::get<int64_t>(v.v));
+  if (std::holds_alternative<bool>(v.v))
+    return std::get<bool>(v.v) ? "true" : "false";
+  if (std::holds_alternative<int64_t>(v.v))
+    return std::to_string(std::get<int64_t>(v.v));
   if (std::holds_alternative<double>(v.v)) {
     std::ostringstream oss;
     oss << std::setprecision(15) << std::get<double>(v.v);
     std::string out = oss.str();
-    if (out.find('.') == std::string::npos && out.find('e') == std::string::npos && out.find('E') == std::string::npos) {
+    if (out.find('.') == std::string::npos &&
+        out.find('e') == std::string::npos &&
+        out.find('E') == std::string::npos) {
       out += ".0";
     }
     return out;
   }
   if (std::holds_alternative<std::string>(v.v)) {
-    return std::string("\"") + json_escape_string(std::get<std::string>(v.v)) + "\"";
+    return std::string("\"") + json_escape_string(std::get<std::string>(v.v)) +
+           "\"";
   }
   if (std::holds_alternative<std::vector<Value>>(v.v)) {
     const auto &list = std::get<std::vector<Value>>(v.v);
@@ -351,14 +392,16 @@ static std::string base64_encode(const std::string &data) {
       valb -= 6;
     }
   }
-  if (valb > -6) encoded.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+  if (valb > -6)
+    encoded.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
   while (encoded.size() % 4) encoded.push_back('=');
   return encoded;
 }
 
 static std::string base64_decode(const std::string &data) {
   std::vector<int> T(256, -1);
-  for (int i = 0; i < 64; i++) T[static_cast<unsigned char>(base64_chars[i])] = i;
+  for (int i = 0; i < 64; i++)
+    T[static_cast<unsigned char>(base64_chars[i])] = i;
   std::string decoded;
   int val = 0;
   int valb = -8;
@@ -401,12 +444,34 @@ static bool glob_match(const std::string &pattern, const std::string &text) {
   regex_pattern.push_back('^');
   for (char c : pattern) {
     switch (c) {
-      case '*': regex_pattern += ".*"; break;
-      case '?': regex_pattern += '.'; break;
-      case '.': regex_pattern += "\\."; break;
-      case '\\': regex_pattern += "\\\\"; break;
-      case '+': case '(': case ')': case '[': case ']': case '{': case '}': case '^': case '$': case '|': regex_pattern.push_back('\\'); regex_pattern.push_back(c); break;
-      default: regex_pattern.push_back(c); break;
+      case '*':
+        regex_pattern += ".*";
+        break;
+      case '?':
+        regex_pattern += '.';
+        break;
+      case '.':
+        regex_pattern += "\\.";
+        break;
+      case '\\':
+        regex_pattern += "\\\\";
+        break;
+      case '+':
+      case '(':
+      case ')':
+      case '[':
+      case ']':
+      case '{':
+      case '}':
+      case '^':
+      case '$':
+      case '|':
+        regex_pattern.push_back('\\');
+        regex_pattern.push_back(c);
+        break;
+      default:
+        regex_pattern.push_back(c);
+        break;
     }
   }
   regex_pattern.push_back('$');
@@ -457,13 +522,18 @@ static std::vector<Value> parse_csv_text(const std::string &text, char delim) {
 }
 
 static std::string csv_escape_field(const std::string &field, char delim) {
-  bool needs_quotes = field.find(delim) != std::string::npos || field.find('"') != std::string::npos || field.find('\n') != std::string::npos || field.find('\r') != std::string::npos;
+  bool needs_quotes = field.find(delim) != std::string::npos ||
+                      field.find('"') != std::string::npos ||
+                      field.find('\n') != std::string::npos ||
+                      field.find('\r') != std::string::npos;
   std::string out = field;
   if (needs_quotes) {
     std::string escaped;
     for (char c : out) {
-      if (c == '"') escaped += "\"\"";
-      else escaped.push_back(c);
+      if (c == '"')
+        escaped += "\"\"";
+      else
+        escaped.push_back(c);
     }
     return std::string("\"") + escaped + "\"";
   }
@@ -476,7 +546,8 @@ std::vector<std::pair<std::string, std::string>> read_archive(
   if (!ifs) throw std::runtime_error("Cannot open archive: " + path);
   std::string magic(archive_magic.size(), '\0');
   ifs.read(&magic[0], static_cast<std::streamsize>(magic.size()));
-  if (magic != archive_magic) throw std::runtime_error("Invalid archive: " + path);
+  if (magic != archive_magic)
+    throw std::runtime_error("Invalid archive: " + path);
   uint64_t count = 0;
   ifs.read(reinterpret_cast<char *>(&count), sizeof(count));
   std::vector<std::pair<std::string, std::string>> entries;
@@ -499,7 +570,8 @@ void write_archive(
     const std::vector<std::pair<std::string, std::string>> &entries) {
   std::ofstream ofs(path, std::ios::binary);
   if (!ofs) throw std::runtime_error("Cannot create archive: " + path);
-  ofs.write(archive_magic.data(), static_cast<std::streamsize>(archive_magic.size()));
+  ofs.write(archive_magic.data(),
+            static_cast<std::streamsize>(archive_magic.size()));
   uint64_t count = entries.size();
   ofs.write(reinterpret_cast<const char *>(&count), sizeof(count));
   for (const auto &entry : entries) {
@@ -640,8 +712,7 @@ void register_stdlib(std::shared_ptr<Environment> env) {
 #endif
 }
 
-Value handle_builtin(const std::string &marker,
-                     const std::vector<Value> &args,
+Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
                      std::shared_ptr<Environment> env) {
   if (marker == "__builtin_print" || marker == "__builtin_echo") {
     for (size_t i = 0; i < args.size(); ++i) {
@@ -660,9 +731,11 @@ Value handle_builtin(const std::string &marker,
         std::holds_alternative<std::shared_ptr<ObjectInstance>>(args[0].v) &&
         std::holds_alternative<std::string>(args[1].v)) {
       auto obj = std::get<std::shared_ptr<ObjectInstance>>(args[0].v);
-      return Value::make_bool(obj->properties->has(std::get<std::string>(args[1].v)));
+      return Value::make_bool(
+          obj->properties->has(std::get<std::string>(args[1].v)));
     }
-    throw std::runtime_error("isset() requires 1 string argument or (object, member)");
+    throw std::runtime_error(
+        "isset() requires 1 string argument or (object, member)");
   }
   if (marker == "__builtin_unset") {
     if (!env) throw std::runtime_error("unset() requires environment access");
@@ -673,26 +746,31 @@ Value handle_builtin(const std::string &marker,
         std::holds_alternative<std::shared_ptr<ObjectInstance>>(args[0].v) &&
         std::holds_alternative<std::string>(args[1].v)) {
       auto obj = std::get<std::shared_ptr<ObjectInstance>>(args[0].v);
-      return Value::make_bool(obj->properties->remove(
-          std::get<std::string>(args[1].v)));
+      return Value::make_bool(
+          obj->properties->remove(std::get<std::string>(args[1].v)));
     }
-    throw std::runtime_error("unset() requires 1 string argument or (object, member)");
+    throw std::runtime_error(
+        "unset() requires 1 string argument or (object, member)");
   }
   if (marker == "__builtin_ref") {
-    if (!env || args.size() != 1 || !std::holds_alternative<std::string>(args[0].v))
+    if (!env || args.size() != 1 ||
+        !std::holds_alternative<std::string>(args[0].v))
       throw std::runtime_error("ref() requires 1 string argument");
     std::string name = std::get<std::string>(args[0].v);
     auto current = env;
     while (current && !current->has_local(name)) current = current->parent;
-    if (!current) throw std::runtime_error("Undefined variable for ref(): " + name);
+    if (!current)
+      throw std::runtime_error("Undefined variable for ref(): " + name);
     return Value::make_ref(current, name);
   }
   if (marker == "__builtin_deref") {
-    if (args.size() != 1 || !std::holds_alternative<std::shared_ptr<Reference>>(args[0].v))
+    if (args.size() != 1 ||
+        !std::holds_alternative<std::shared_ptr<Reference>>(args[0].v))
       throw std::runtime_error("deref() requires 1 reference argument");
     auto ref = std::get<std::shared_ptr<Reference>>(args[0].v);
     auto target = ref->env->get(ref->name);
-    if (!target) throw std::runtime_error("Invalid reference target: " + ref->name);
+    if (!target)
+      throw std::runtime_error("Invalid reference target: " + ref->name);
     return *target;
   }
   if (marker == "__builtin_set_ref") {
@@ -704,8 +782,10 @@ Value handle_builtin(const std::string &marker,
     return Value();
   }
   if (marker == "__builtin_is_ref") {
-    if (args.size() != 1) throw std::runtime_error("is_ref() requires 1 argument");
-    return Value::make_bool(std::holds_alternative<std::shared_ptr<Reference>>(args[0].v));
+    if (args.size() != 1)
+      throw std::runtime_error("is_ref() requires 1 argument");
+    return Value::make_bool(
+        std::holds_alternative<std::shared_ptr<Reference>>(args[0].v));
   }
   if (marker == "__builtin_range") {
     int64_t start = 0;
@@ -726,9 +806,11 @@ Value handle_builtin(const std::string &marker,
     if (step == 0) throw std::runtime_error("range() step cannot be zero");
     std::vector<Value> list;
     if (step > 0) {
-      for (int64_t i = start; i < stop; i += step) list.push_back(Value::make_int(i));
+      for (int64_t i = start; i < stop; i += step)
+        list.push_back(Value::make_int(i));
     } else {
-      for (int64_t i = start; i > stop; i += step) list.push_back(Value::make_int(i));
+      for (int64_t i = start; i > stop; i += step)
+        list.push_back(Value::make_int(i));
     }
     return Value::make_list(list);
   }
@@ -743,13 +825,17 @@ Value handle_builtin(const std::string &marker,
           static_cast<int64_t>(std::get<std::vector<Value>>(arg.v).size()));
     } else if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(arg.v)) {
       return Value::make_int(
-          static_cast<int64_t>(std::get<std::shared_ptr<ObjectInstance>>(arg.v)->properties->local_keys().size()));
+          static_cast<int64_t>(std::get<std::shared_ptr<ObjectInstance>>(arg.v)
+                                   ->properties->local_keys()
+                                   .size()));
     } else {
-      throw std::runtime_error("len() argument must be string, list, or object");
+      throw std::runtime_error(
+          "len() argument must be string, list, or object");
     }
   }
   if (marker == "__builtin_copy" || marker == "__builtin_clone") {
-    if (args.size() != 1) throw std::runtime_error("copy() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("copy() requires 1 argument");
     return copy_value(args[0]);
   }
   if (marker == "__builtin_slice") {
@@ -758,22 +844,28 @@ Value handle_builtin(const std::string &marker,
     const auto &source = args[0];
     int64_t start = static_cast<int64_t>(value_as_number(args[1]).as_number());
     int64_t length = -1;
-    if (args.size() == 3) length = static_cast<int64_t>(value_as_number(args[2]).as_number());
+    if (args.size() == 3)
+      length = static_cast<int64_t>(value_as_number(args[2]).as_number());
     if (std::holds_alternative<std::string>(source.v)) {
       std::string s = std::get<std::string>(source.v);
       if (start < 0) start = static_cast<int64_t>(s.size()) + start;
       if (start < 0) start = 0;
-      if (length < 0) return Value::make_str(s.substr(static_cast<size_t>(start)));
-      return Value::make_str(s.substr(static_cast<size_t>(start), static_cast<size_t>(length)));
+      if (length < 0)
+        return Value::make_str(s.substr(static_cast<size_t>(start)));
+      return Value::make_str(
+          s.substr(static_cast<size_t>(start), static_cast<size_t>(length)));
     }
     if (std::holds_alternative<std::vector<Value>>(source.v)) {
       const auto &list = std::get<std::vector<Value>>(source.v);
       if (start < 0) start = static_cast<int64_t>(list.size()) + start;
       if (start < 0) start = 0;
-      int64_t end = (length < 0) ? static_cast<int64_t>(list.size()) : start + length;
-      if (end > static_cast<int64_t>(list.size())) end = static_cast<int64_t>(list.size());
+      int64_t end =
+          (length < 0) ? static_cast<int64_t>(list.size()) : start + length;
+      if (end > static_cast<int64_t>(list.size()))
+        end = static_cast<int64_t>(list.size());
       std::vector<Value> out;
-      for (int64_t i = start; i < end; ++i) out.push_back(list[static_cast<size_t>(i)]);
+      for (int64_t i = start; i < end; ++i)
+        out.push_back(list[static_cast<size_t>(i)]);
       return Value::make_list(std::move(out));
     }
     throw std::runtime_error("slice() source must be string or list");
@@ -793,7 +885,8 @@ Value handle_builtin(const std::string &marker,
     });
     return Value::make_list(std::move(list));
   }
-  if (marker == "__builtin_sum" || marker == "__builtin_min" || marker == "__builtin_max") {
+  if (marker == "__builtin_sum" || marker == "__builtin_min" ||
+      marker == "__builtin_max") {
     if (args.size() != 1)
       throw std::runtime_error("sum/min/max() requires 1 list argument");
     if (!std::holds_alternative<std::vector<Value>>(args[0].v))
@@ -802,7 +895,8 @@ Value handle_builtin(const std::string &marker,
     if (list.empty()) throw std::runtime_error("List cannot be empty");
     double result = value_as_number(list[0]).as_number();
     if (marker == "__builtin_sum") {
-      for (size_t i = 1; i < list.size(); ++i) result += value_as_number(list[i]).as_number();
+      for (size_t i = 1; i < list.size(); ++i)
+        result += value_as_number(list[i]).as_number();
       return Value::make_double(result);
     }
     for (size_t i = 1; i < list.size(); ++i) {
@@ -813,16 +907,22 @@ Value handle_builtin(const std::string &marker,
     return Value::make_double(result);
   }
   if (marker == "__builtin_type") {
-    if (args.size() != 1) throw std::runtime_error("type() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("type() requires 1 argument");
     const auto &arg = args[0];
-    if (std::holds_alternative<std::monostate>(arg.v)) return Value::make_str("none");
+    if (std::holds_alternative<std::monostate>(arg.v))
+      return Value::make_str("none");
     if (std::holds_alternative<int64_t>(arg.v)) return Value::make_str("int");
     if (std::holds_alternative<double>(arg.v)) return Value::make_str("float");
-    if (std::holds_alternative<std::string>(arg.v)) return Value::make_str("string");
+    if (std::holds_alternative<std::string>(arg.v))
+      return Value::make_str("string");
     if (std::holds_alternative<bool>(arg.v)) return Value::make_str("bool");
-    if (std::holds_alternative<std::vector<Value>>(arg.v)) return Value::make_str("list");
-    if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(arg.v)) return Value::make_str("object");
-    if (std::holds_alternative<std::shared_ptr<Reference>>(arg.v)) return Value::make_str("ref");
+    if (std::holds_alternative<std::vector<Value>>(arg.v))
+      return Value::make_str("list");
+    if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(arg.v))
+      return Value::make_str("object");
+    if (std::holds_alternative<std::shared_ptr<Reference>>(arg.v))
+      return Value::make_str("ref");
     return Value::make_str("unknown");
   }
   if (marker == "__builtin_vars") {
@@ -849,7 +949,8 @@ Value handle_builtin(const std::string &marker,
     throw std::runtime_error("vars() accepts no args or an object instance");
   }
   if (marker == "__builtin_keys") {
-    if (args.size() != 1) throw std::runtime_error("keys() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("keys() requires 1 argument");
     if (std::holds_alternative<std::vector<Value>>(args[0].v)) {
       const auto &list = std::get<std::vector<Value>>(args[0].v);
       std::vector<Value> result;
@@ -882,7 +983,8 @@ Value handle_builtin(const std::string &marker,
   }
   if (marker == "__builtin_set") {
     if (args.size() != 3)
-      throw std::runtime_error("set() requires 3 arguments (object, key, value)");
+      throw std::runtime_error(
+          "set() requires 3 arguments (object, key, value)");
     if (std::holds_alternative<std::shared_ptr<ObjectInstance>>(args[0].v) &&
         std::holds_alternative<std::string>(args[1].v)) {
       auto obj = std::get<std::shared_ptr<ObjectInstance>>(args[0].v);
@@ -892,13 +994,15 @@ Value handle_builtin(const std::string &marker,
     throw std::runtime_error("set() requires (object, string, value)");
   }
   if (marker == "__builtin_system") {
-    if (args.size() != 1) throw std::runtime_error("system() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("system() requires 1 argument");
     std::string cmd = std::get<std::string>(args[0].v);
     int code = std::system(cmd.c_str());
     return Value::make_int(static_cast<int64_t>(code));
   }
   if (marker == "__builtin_shell") {
-    if (args.size() != 1) throw std::runtime_error("shell() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("shell() requires 1 argument");
     std::string cmd = std::get<std::string>(args[0].v);
     std::string output;
     FILE *pipe = popen(cmd.c_str(), "r");
@@ -912,13 +1016,15 @@ Value handle_builtin(const std::string &marker,
     return Value::make_str(output);
   }
   if (marker == "__builtin_getenv") {
-    if (args.size() != 1) throw std::runtime_error("getenv() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("getenv() requires 1 argument");
     std::string name = std::get<std::string>(args[0].v);
     const char *value = std::getenv(name.c_str());
     return value ? Value::make_str(value) : Value();
   }
   if (marker == "__builtin_setenv") {
-    if (args.size() != 2) throw std::runtime_error("setenv() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("setenv() requires 2 arguments");
     std::string name = std::get<std::string>(args[0].v);
     std::string value = std::get<std::string>(args[1].v);
     if (setenv(name.c_str(), value.c_str(), 1) != 0)
@@ -926,7 +1032,8 @@ Value handle_builtin(const std::string &marker,
     return Value();
   }
   if (marker == "__builtin_sleep") {
-    if (args.size() != 1) throw std::runtime_error("sleep() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("sleep() requires 1 argument");
     int64_t ms = static_cast<int64_t>(value_as_number(args[0]).as_number());
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     return Value();
@@ -936,7 +1043,8 @@ Value handle_builtin(const std::string &marker,
     return Value::make_str(fs::current_path().string());
   }
   if (marker == "__builtin_path_join") {
-    if (args.empty()) throw std::runtime_error("path_join() requires at least 1 argument");
+    if (args.empty())
+      throw std::runtime_error("path_join() requires at least 1 argument");
     fs::path result;
     for (const auto &arg : args) {
       result /= std::get<std::string>(arg.v);
@@ -944,32 +1052,38 @@ Value handle_builtin(const std::string &marker,
     return Value::make_str(result.string());
   }
   if (marker == "__builtin_basename") {
-    if (args.size() != 1) throw std::runtime_error("basename() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("basename() requires 1 argument");
     fs::path p = std::get<std::string>(args[0].v);
     return Value::make_str(p.filename().string());
   }
   if (marker == "__builtin_dirname") {
-    if (args.size() != 1) throw std::runtime_error("dirname() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("dirname() requires 1 argument");
     fs::path p = std::get<std::string>(args[0].v);
     return Value::make_str(p.parent_path().string());
   }
   if (marker == "__builtin_path_is_absolute") {
-    if (args.size() != 1) throw std::runtime_error("path_is_absolute() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("path_is_absolute() requires 1 argument");
     fs::path p = std::get<std::string>(args[0].v);
     return Value::make_bool(p.is_absolute());
   }
   if (marker == "__builtin_path_normalize") {
-    if (args.size() != 1) throw std::runtime_error("path_normalize() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("path_normalize() requires 1 argument");
     fs::path p = std::get<std::string>(args[0].v);
     return Value::make_str(p.lexically_normal().string());
   }
   if (marker == "__builtin_file_ext") {
-    if (args.size() != 1) throw std::runtime_error("file_ext() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("file_ext() requires 1 argument");
     fs::path p = std::get<std::string>(args[0].v);
     return Value::make_str(p.extension().string());
   }
   if (marker == "__builtin_json_parse") {
-    if (args.size() != 1) throw std::runtime_error("json_parse() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("json_parse() requires 1 argument");
     const std::string &text = std::get<std::string>(args[0].v);
     size_t pos = 0;
     Value result = parse_json_value(text, pos);
@@ -978,15 +1092,18 @@ Value handle_builtin(const std::string &marker,
     return result;
   }
   if (marker == "__builtin_json_stringify") {
-    if (args.size() != 1) throw std::runtime_error("json_stringify() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("json_stringify() requires 1 argument");
     return Value::make_str(json_stringify_value(args[0]));
   }
   if (marker == "__builtin_csv_parse") {
     if (args.size() < 1 || args.size() > 2)
       throw std::runtime_error("csv_parse() requires 1 or 2 arguments");
     std::string text = std::get<std::string>(args[0].v);
-    std::string delim = (args.size() == 2) ? std::get<std::string>(args[1].v) : ",";
-    if (delim.empty()) throw std::runtime_error("csv_parse() delimiter cannot be empty");
+    std::string delim =
+        (args.size() == 2) ? std::get<std::string>(args[1].v) : ",";
+    if (delim.empty())
+      throw std::runtime_error("csv_parse() delimiter cannot be empty");
     auto rows = parse_csv_text(text, delim[0]);
     return Value::make_list(std::move(rows));
   }
@@ -994,8 +1111,10 @@ Value handle_builtin(const std::string &marker,
     if (args.size() < 1 || args.size() > 2)
       throw std::runtime_error("csv_stringify() requires 1 or 2 arguments");
     const auto &rows = as_list(args[0]);
-    std::string delim = (args.size() == 2) ? std::get<std::string>(args[1].v) : ",";
-    if (delim.empty()) throw std::runtime_error("csv_stringify() delimiter cannot be empty");
+    std::string delim =
+        (args.size() == 2) ? std::get<std::string>(args[1].v) : ",";
+    if (delim.empty())
+      throw std::runtime_error("csv_stringify() delimiter cannot be empty");
     std::string output;
     for (size_t ri = 0; ri < rows.size(); ++ri) {
       const auto &row = rows[ri];
@@ -1011,16 +1130,19 @@ Value handle_builtin(const std::string &marker,
     return Value::make_str(output);
   }
   if (marker == "__builtin_mkdirs") {
-    if (args.size() != 1) throw std::runtime_error("mkdirs() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("mkdirs() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     return Value::make_bool(fs::create_directories(path));
   }
   if (marker == "__builtin_base64_encode") {
-    if (args.size() != 1) throw std::runtime_error("base64_encode() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("base64_encode() requires 1 argument");
     return Value::make_str(base64_encode(std::get<std::string>(args[0].v)));
   }
   if (marker == "__builtin_base64_decode") {
-    if (args.size() != 1) throw std::runtime_error("base64_decode() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("base64_decode() requires 1 argument");
     return Value::make_str(base64_decode(std::get<std::string>(args[0].v)));
   }
   if (marker == "__builtin_uuid4") {
@@ -1028,7 +1150,8 @@ Value handle_builtin(const std::string &marker,
     return Value::make_str(uuid4());
   }
   if (marker == "__builtin_glob") {
-    if (args.size() != 1) throw std::runtime_error("glob() requires 1 argument");
+    if (args.size() != 1)
+      throw std::runtime_error("glob() requires 1 argument");
     std::string pattern = std::get<std::string>(args[0].v);
     fs::path p(pattern);
     fs::path dir = p.parent_path();
@@ -1045,7 +1168,8 @@ Value handle_builtin(const std::string &marker,
     return Value::make_list(std::move(matches));
   }
   if (marker == "__builtin_regex_match") {
-    if (args.size() != 2) throw std::runtime_error("regex_match() requires 2 arguments");
+    if (args.size() != 2)
+      throw std::runtime_error("regex_match() requires 2 arguments");
     std::string text = std::get<std::string>(args[0].v);
     std::string pattern = std::get<std::string>(args[1].v);
     try {
@@ -1055,12 +1179,14 @@ Value handle_builtin(const std::string &marker,
     }
   }
   if (marker == "__builtin_regex_replace") {
-    if (args.size() != 3) throw std::runtime_error("regex_replace() requires 3 arguments");
+    if (args.size() != 3)
+      throw std::runtime_error("regex_replace() requires 3 arguments");
     std::string text = std::get<std::string>(args[0].v);
     std::string pattern = std::get<std::string>(args[1].v);
     std::string replacement = std::get<std::string>(args[2].v);
     try {
-      return Value::make_str(std::regex_replace(text, std::regex(pattern), replacement));
+      return Value::make_str(
+          std::regex_replace(text, std::regex(pattern), replacement));
     } catch (const std::regex_error &e) {
       throw std::runtime_error(std::string("Invalid regex: ") + e.what());
     }
@@ -1074,10 +1200,12 @@ Value handle_builtin(const std::string &marker,
     std::string pass = std::get<std::string>(args[2].v);
     std::string db = std::get<std::string>(args[3].v);
     unsigned int port = 3306;
-    if (args.size() == 5) port = static_cast<unsigned int>(value_as_number(args[4]).as_number());
+    if (args.size() == 5)
+      port = static_cast<unsigned int>(value_as_number(args[4]).as_number());
     MYSQL *conn = mysql_init(nullptr);
     if (!conn) throw std::runtime_error("mysql_init() failed");
-    if (!mysql_real_connect(conn, host.c_str(), user.c_str(), pass.c_str(), db.c_str(), port, nullptr, 0)) {
+    if (!mysql_real_connect(conn, host.c_str(), user.c_str(), pass.c_str(),
+                            db.c_str(), port, nullptr, 0)) {
       std::string err = mysql_error(conn);
       mysql_close(conn);
       throw std::runtime_error("MySQL connection failed: " + err);
@@ -1091,7 +1219,8 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("mysql_close() requires 1 connection id");
     int id = static_cast<int>(value_as_number(args[0]).as_number());
     auto it = mysql_connections.find(id);
-    if (it == mysql_connections.end()) throw std::runtime_error("Invalid MySQL connection id");
+    if (it == mysql_connections.end())
+      throw std::runtime_error("Invalid MySQL connection id");
     mysql_close(it->second);
     mysql_connections.erase(it);
     return Value();
@@ -1101,10 +1230,13 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("mysql_escape() requires 2 arguments");
     int id = static_cast<int>(value_as_number(args[0]).as_number());
     auto it = mysql_connections.find(id);
-    if (it == mysql_connections.end()) throw std::runtime_error("Invalid MySQL connection id");
+    if (it == mysql_connections.end())
+      throw std::runtime_error("Invalid MySQL connection id");
     std::string value = std::get<std::string>(args[1].v);
     std::string out(value.size() * 2 + 1, '\0');
-    unsigned long len = mysql_real_escape_string(it->second, out.data(), value.c_str(), static_cast<unsigned long>(value.size()));
+    unsigned long len =
+        mysql_real_escape_string(it->second, out.data(), value.c_str(),
+                                 static_cast<unsigned long>(value.size()));
     out.resize(len);
     return Value::make_str(out);
   }
@@ -1113,10 +1245,12 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("mysql_query() requires 2 arguments");
     int id = static_cast<int>(value_as_number(args[0]).as_number());
     auto it = mysql_connections.find(id);
-    if (it == mysql_connections.end()) throw std::runtime_error("Invalid MySQL connection id");
+    if (it == mysql_connections.end())
+      throw std::runtime_error("Invalid MySQL connection id");
     std::string sql = std::get<std::string>(args[1].v);
     if (mysql_query(it->second, sql.c_str()) != 0) {
-      throw std::runtime_error(std::string("MySQL query failed: ") + mysql_error(it->second));
+      throw std::runtime_error(std::string("MySQL query failed: ") +
+                               mysql_error(it->second));
     }
     MYSQL_RES *result = mysql_store_result(it->second);
     if (!result) return Value::make_list({});
@@ -1127,8 +1261,11 @@ Value handle_builtin(const std::string &marker,
       std::vector<Value> row_values;
       unsigned long *lengths = mysql_fetch_lengths(result);
       for (unsigned int i = 0; i < num_fields; ++i) {
-        if (row[i]) row_values.push_back(Value::make_str(std::string(row[i], lengths[i])));
-        else row_values.push_back(Value());
+        if (row[i])
+          row_values.push_back(
+              Value::make_str(std::string(row[i], lengths[i])));
+        else
+          row_values.push_back(Value());
       }
       rows.push_back(Value::make_list(std::move(row_values)));
     }
@@ -1140,10 +1277,12 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("mysql_exec() requires 2 arguments");
     int id = static_cast<int>(value_as_number(args[0]).as_number());
     auto it = mysql_connections.find(id);
-    if (it == mysql_connections.end()) throw std::runtime_error("Invalid MySQL connection id");
+    if (it == mysql_connections.end())
+      throw std::runtime_error("Invalid MySQL connection id");
     std::string sql = std::get<std::string>(args[1].v);
     if (mysql_query(it->second, sql.c_str()) != 0) {
-      throw std::runtime_error(std::string("MySQL exec failed: ") + mysql_error(it->second));
+      throw std::runtime_error(std::string("MySQL exec failed: ") +
+                               mysql_error(it->second));
     }
     auto affected = mysql_affected_rows(it->second);
     return Value::make_int(static_cast<int64_t>(affected));
@@ -1251,9 +1390,10 @@ Value handle_builtin(const std::string &marker,
       throw std::runtime_error("list_dir() requires 1 argument");
     std::string path = std::get<std::string>(args[0].v);
     std::vector<Value> list;
-    std::transform(fs::directory_iterator(path), fs::directory_iterator{}, std::back_inserter(list), [](const auto& entry) {
-      return Value::make_str(entry.path().string());
-    });
+    std::transform(fs::directory_iterator(path), fs::directory_iterator{},
+                   std::back_inserter(list), [](const auto &entry) {
+                     return Value::make_str(entry.path().string());
+                   });
     return Value::make_list(list);
   }
   if (marker == "__builtin_mkdir") {
@@ -1433,7 +1573,8 @@ Value handle_builtin(const std::string &marker,
     std::vector<std::pair<std::string, std::string>> entries;
     for (const auto &entry_val : files) {
       if (!std::holds_alternative<std::vector<Value>>(entry_val.v))
-        throw std::runtime_error("baar_create() file list must contain [name, data] entries");
+        throw std::runtime_error(
+            "baar_create() file list must contain [name, data] entries");
       const auto &entry = std::get<std::vector<Value>>(entry_val.v);
       if (entry.size() != 2)
         throw std::runtime_error("baar_create() entry must be [name, data]");
@@ -1486,7 +1627,8 @@ Value handle_builtin(const std::string &marker,
   if (marker == "__builtin_curl_get" || marker == "__builtin_curl_post" ||
       marker == "__builtin_curl_request") {
     if (args.empty() || args.size() > 3)
-      throw std::runtime_error("curl_get/curl_post/curl_request() requires 1-3 arguments");
+      throw std::runtime_error(
+          "curl_get/curl_post/curl_request() requires 1-3 arguments");
     std::string url = std::get<std::string>(args[0].v);
     std::string method = "GET";
     std::string body;
@@ -1497,10 +1639,8 @@ Value handle_builtin(const std::string &marker,
       body = std::get<std::string>(args[1].v);
     }
     if (marker == "__builtin_curl_request") {
-      if (args.size() >= 2)
-        method = std::get<std::string>(args[1].v);
-      if (args.size() == 3)
-        body = std::get<std::string>(args[2].v);
+      if (args.size() >= 2) method = std::get<std::string>(args[1].v);
+      if (args.size() == 3) body = std::get<std::string>(args[2].v);
     }
     CURL *curl = curl_easy_init();
     if (!curl) throw std::runtime_error("Failed to initialize curl");
@@ -1523,7 +1663,8 @@ Value handle_builtin(const std::string &marker,
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
     curl_easy_cleanup(curl);
     if (res != CURLE_OK) {
-      throw std::runtime_error(std::string("curl failed: ") + curl_easy_strerror(res));
+      throw std::runtime_error(std::string("curl failed: ") +
+                               curl_easy_strerror(res));
     }
     return Value::make_str(response);
   }
@@ -1531,7 +1672,8 @@ Value handle_builtin(const std::string &marker,
 #ifdef BLOA_USE_SQLITE
   if (marker == "__builtin_sqlite_query" || marker == "__builtin_sqlite_exec") {
     if (args.size() != 2)
-      throw std::runtime_error("sqlite_query/sqlite_exec() requires 2 arguments");
+      throw std::runtime_error(
+          "sqlite_query/sqlite_exec() requires 2 arguments");
     std::string path = std::get<std::string>(args[0].v);
     std::string sql = std::get<std::string>(args[1].v);
     sqlite3 *db = nullptr;
@@ -1566,7 +1708,8 @@ Value handle_builtin(const std::string &marker,
       int cols = sqlite3_column_count(stmt);
       for (int col = 0; col < cols; ++col) {
         const unsigned char *text = sqlite3_column_text(stmt, col);
-        row.push_back(Value::make_str(text ? reinterpret_cast<const char *>(text) : ""));
+        row.push_back(
+            Value::make_str(text ? reinterpret_cast<const char *>(text) : ""));
       }
       rows.push_back(Value::make_list(std::move(row)));
     }

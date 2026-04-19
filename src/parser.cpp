@@ -256,7 +256,8 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
     }
 
     /* foreach / for-in / for syntax */
-    if ((starts_with(line, "foreach (") || starts_with(line, "for-in (") || starts_with(line, "for (")) &&
+    if ((starts_with(line, "foreach (") || starts_with(line, "for-in (") ||
+         starts_with(line, "for (")) &&
         line.back() == '{') {
       size_t start = line.find('(');
       std::string header = line.substr(start + 1, line.size() - start - 4);
@@ -273,14 +274,16 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
       } else {
         auto pos = header.find(" as ");
         if (pos == std::string::npos)
-          throw_parse_error(idx + 1,
-                            "Invalid foreach/for-in syntax (expected 'as' in header)",
-                            raw_line, first_nonspace_col(raw_line));
+          throw_parse_error(
+              idx + 1,
+              "Invalid foreach/for-in syntax (expected 'as' in header)",
+              raw_line, first_nonspace_col(raw_line));
         iterable = header.substr(0, pos);
         var = header.substr(pos + 4);
       }
       auto res = parse_block(lines, idx + 1, base_indent);
-      nodes.push_back(std::make_shared<ForIn>(ltrim(rtrim(var)), ltrim(rtrim(iterable)), res.first));
+      nodes.push_back(std::make_shared<ForIn>(
+          ltrim(rtrim(var)), ltrim(rtrim(iterable)), res.first));
       idx = res.second;
       continue;
     }
@@ -345,8 +348,7 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
           except_block = except_res.first;
           next = except_res.second;
         } else {
-          throw_parse_error(next + 1,
-                            "Expected 'except {' after try block",
+          throw_parse_error(next + 1, "Expected 'except {' after try block",
                             lines[next], first_nonspace_col(lines[next]));
         }
       }

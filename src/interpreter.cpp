@@ -79,7 +79,8 @@ static double value_as_number(const Value &v) {
   Value resolved = resolve_reference(v);
   if (std::holds_alternative<int64_t>(resolved.v))
     return static_cast<double>(std::get<int64_t>(resolved.v));
-  if (std::holds_alternative<double>(resolved.v)) return std::get<double>(resolved.v);
+  if (std::holds_alternative<double>(resolved.v))
+    return std::get<double>(resolved.v);
   if (std::holds_alternative<std::string>(resolved.v)) {
     const std::string &s = std::get<std::string>(resolved.v);
     try {
@@ -94,9 +95,12 @@ static double value_as_number(const Value &v) {
 static bool value_is_true(const Value &v) {
   Value resolved = resolve_reference(v);
   if (std::holds_alternative<std::monostate>(resolved.v)) return false;
-  if (std::holds_alternative<bool>(resolved.v)) return std::get<bool>(resolved.v);
-  if (std::holds_alternative<int64_t>(resolved.v)) return std::get<int64_t>(resolved.v) != 0;
-  if (std::holds_alternative<double>(resolved.v)) return std::get<double>(resolved.v) != 0.0;
+  if (std::holds_alternative<bool>(resolved.v))
+    return std::get<bool>(resolved.v);
+  if (std::holds_alternative<int64_t>(resolved.v))
+    return std::get<int64_t>(resolved.v) != 0;
+  if (std::holds_alternative<double>(resolved.v))
+    return std::get<double>(resolved.v) != 0.0;
   if (std::holds_alternative<std::string>(resolved.v))
     return !std::get<std::string>(resolved.v).empty();
   if (std::holds_alternative<std::vector<Value>>(resolved.v))
@@ -405,8 +409,8 @@ Value Interpreter::parse_expression(std::string expr,
         if (init_method) {
           if (init_method->params.size() != constructor_args.size() + 1)
             error("__init__() expects " +
-                  std::to_string(
-                      static_cast<int>(init_method->params.size()) - 1) +
+                  std::to_string(static_cast<int>(init_method->params.size()) -
+                                 1) +
                   " arguments but got " +
                   std::to_string(constructor_args.size()));
           auto init_env = std::make_shared<Environment>(init_method->def_env);
@@ -1071,7 +1075,8 @@ Value Interpreter::execute_block(const NodeList &nodes,
           }
           if (code.empty() && !entries.empty()) code = entries[0].second;
           if (code.empty())
-            throw std::runtime_error("Archive contains no Bloa entry: " + r->path);
+            throw std::runtime_error("Archive contains no Bloa entry: " +
+                                     r->path);
           auto nodes = parse(code);
           execute_block(nodes, env);
         } else {

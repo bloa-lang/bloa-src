@@ -71,8 +71,7 @@ struct Value {
     return val;
   }
 
-  static Value make_ref(std::shared_ptr<Environment> env,
-                        std::string name) {
+  static Value make_ref(std::shared_ptr<Environment> env, std::string name) {
     Value val;
     val.v = std::make_shared<Reference>(std::move(env), std::move(name));
     return val;
@@ -100,14 +99,16 @@ struct Value {
 
   std::string to_string() const {
     if (std::holds_alternative<std::monostate>(v)) return "None";
-    if (std::holds_alternative<int64_t>(v)) return std::to_string(std::get<int64_t>(v));
+    if (std::holds_alternative<int64_t>(v))
+      return std::to_string(std::get<int64_t>(v));
     if (std::holds_alternative<double>(v)) {
       double d = std::get<double>(v);
       if (std::floor(d) == d) return std::to_string(static_cast<int64_t>(d));
       return std::to_string(d);
     }
     if (std::holds_alternative<std::string>(v)) return std::get<std::string>(v);
-    if (std::holds_alternative<bool>(v)) return std::get<bool>(v) ? "true" : "false";
+    if (std::holds_alternative<bool>(v))
+      return std::get<bool>(v) ? "true" : "false";
     if (std::holds_alternative<std::vector<Value>>(v)) {
       std::string out = "[";
       const auto &list = std::get<std::vector<Value>>(v);
@@ -152,7 +153,8 @@ struct Environment {
   std::unordered_map<std::string, Variable> vars;
 };
 
-inline std::optional<Value> Environment::get_local(const std::string &name) const {
+inline std::optional<Value> Environment::get_local(
+    const std::string &name) const {
   auto it = vars.find(name);
   if (it != vars.end()) return it->second.value;
   return std::nullopt;

@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
       }
       if (code.empty()) {
         for (const auto &entry : entries) {
-          if (entry.first.size() >= 5 && entry.first.substr(entry.first.size() - 5) == ".bloa") {
+          if (entry.first.size() >= 5 &&
+              entry.first.substr(entry.first.size() - 5) == ".bloa") {
             code = entry.second;
             break;
           }
@@ -80,7 +81,8 @@ int main(int argc, char **argv) {
       }
       if (code.empty() && !entries.empty()) code = entries[0].second;
       if (code.empty()) {
-        std::cerr << "Baar archive contains no executable entry: " << arg << std::endl;
+        std::cerr << "Baar archive contains no executable entry: " << arg
+                  << std::endl;
         return 1;
       }
       src = std::move(code);
