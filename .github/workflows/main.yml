@@ -18,6 +18,6 @@ jobs:
 
       - name: Run BLOA tests
         run: |
-          ./build/bloa tests/test_json.bloa
-          ./build/bloa tests/test_csv.bloa
-          ./build/bloa tests/test_misc.bloa
+          ./build/bloa tests/test_json
+          ./build/bloa tests/test_csv
+          ./build/bloa tests/test_misc
