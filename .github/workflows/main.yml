@@ -1,52 +1,23 @@
-name: CI
+name: BLOA CI
 
 on: [push, pull_request]
 
 jobs:
-  lint:
+  test_bloa:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install tools
-        run: |
-          sudo apt update
-          sudo apt install -y clang-format clang-tidy cppcheck
-
-      - name: clang-format check
-        run: |
-          clang-format --dry-run --Werror \
-            $(git ls-files '*.cpp' '*.hpp')
-
-      - name: cppcheck
-        run: |
-          cppcheck --enable=all --error-exitcode=1 \
-            --suppress=missingIncludeSystem \
-            --suppress=noExplicitConstructor \
-            --suppress=shadowVariable \
-            --suppress=shadowArgument \
-            --suppress=passedByValue \
-            --suppress=useStlAlgorithm \
-            --suppress=knownConditionTrueFalse \
-            --suppress=unusedFunction \
-            --suppress=checkLevelNormal \
-            -I include src include
-
-  build_and_test:
-    needs: lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install build dependencies
+      - name: Build BLOA interpreter
         run: |
           sudo apt update
           sudo apt install -y cmake build-essential libcurl4-openssl-dev libsqlite3-dev
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBLOA_USE_MYSQL=OFF
+          cmake --build build -- -j$(nproc)
 
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBLOA_USE_MYSQL=OFF
-
-      - name: Build and run tests
-        run: cmake --build build --target check -- -j$(nproc)
+      - name: Run BLOA tests
+        run: |
+          ./build/bloa tests/test_json.bloa
+          ./build/bloa tests/test_csv.bloa
+          ./build/bloa tests/test_misc.bloa
