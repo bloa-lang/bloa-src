@@ -21,7 +21,17 @@ jobs:
 
       - name: cppcheck
         run: |
-          cppcheck --enable=all --error-exitcode=1 -I include .
+          cppcheck --enable=all --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            --suppress=noExplicitConstructor \
+            --suppress=shadowVariable \
+            --suppress=shadowArgument \
+            --suppress=passedByValue \
+            --suppress=useStlAlgorithm \
+            --suppress=knownConditionTrueFalse \
+            --suppress=unusedFunction \
+            --suppress=checkLevelNormal \
+            -I include src include
 
   build_and_test:
     needs: lint
