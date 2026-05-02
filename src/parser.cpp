@@ -146,6 +146,31 @@ static std::string remove_comments(const std::string &code) {
   return out;
 }
 
+// Helper function to extract visibility and static modifiers from a line
+static bool extract_modifiers(std::string &line, std::string &visibility,
+                              bool &is_static) {
+  visibility = "public";  // default
+  is_static = false;
+
+  if (starts_with(line, "public ")) {
+    visibility = "public";
+    line = line.substr(7);
+  } else if (starts_with(line, "protected ")) {
+    visibility = "protected";
+    line = line.substr(10);
+  } else if (starts_with(line, "private ")) {
+    visibility = "private";
+    line = line.substr(8);
+  }
+
+  if (starts_with(line, "static ")) {
+    is_static = true;
+    line = line.substr(7);
+  }
+
+  return true;
+}
+
 std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
                                      int start_idx, int base_indent) {
   int idx = start_idx;
@@ -286,6 +311,90 @@ std::pair<NodeList, int> parse_block(const std::vector<std::string> &lines,
           ltrim(rtrim(var)), ltrim(rtrim(iterable)), res.first));
       idx = res.second;
       continue;
+    }
+
+    /* method with visibility/static modifiers */
+    if (line.find("method ") != std::string::npos && line.back() == '{') {
+      std::string modified_line = line;
+      std::string visibility;
+      bool is_static;
+      extract_modifiers(modified_line, visibility, is_static);
+
+      if (starts_with(modified_line, "method ")) {
+        std::string header_raw =
+            modified_line.substr(7, modified_line.size() - 8);
+        std::string header = ltrim(rtrim(header_raw));
+        auto pos = header.find('(');
+        if (pos == std::string::npos)
+          throw_parse_error(idx + 1,
+                            "Invalid method syntax (expected '(' after name)",
+                            raw_line, first_nonspace_col(raw_line));
+
+        std::string name = header.substr(0, pos);
+        std::string params_raw =
+            header.substr(pos + 1, header.size() - pos - 2);
+
+        std::vector<std::string> params;
+        std::istringstream iss(params_raw);
+        std::string tok;
+        while (std::getline(iss, tok, ',')) {
+          tok = ltrim(rtrim(tok));
+          if (!tok.empty()) params.push_back(tok);
+        }
+
+        auto res = parse_block(lines, idx + 1, base_indent);
+        nodes.push_back(std::make_shared<MethodDef>(visibility, is_static, name,
+                                                     params, res.first));
+        idx = res.second;
+        continue;
+      }
+    }
+
+    /* constructor */
+    if (line.find("constructor(") != std::string::npos && line.back() == '{') {
+      auto pos = line.find('(');
+      auto end_pos = line.rfind(')');
+      if (pos == std::string::npos || end_pos == std::string::npos)
+        throw_parse_error(idx + 1, "Invalid constructor syntax", raw_line,
+                          first_nonspace_col(raw_line));
+
+      std::string params_raw = line.substr(pos + 1, end_pos - pos - 1);
+
+      std::vector<std::string> params;
+      std::istringstream iss(params_raw);
+      std::string tok;
+      while (std::getline(iss, tok, ',')) {
+        tok = ltrim(rtrim(tok));
+        if (!tok.empty()) params.push_back(tok);
+      }
+
+      auto res = parse_block(lines, idx + 1, base_indent);
+      nodes.push_back(std::make_shared<ConstructorDef>(params, res.first));
+      idx = res.second;
+      continue;
+    }
+
+    /* property with visibility/static modifiers */
+    if (line.find('=') != std::string::npos &&
+        line.find("==") == std::string::npos &&
+        (line.find("public ") != std::string::npos ||
+         line.find("protected ") != std::string::npos ||
+         line.find("private ") != std::string::npos)) {
+      std::string modified_line = line;
+      std::string visibility;
+      bool is_static;
+      extract_modifiers(modified_line, visibility, is_static);
+
+      auto pos = modified_line.find('=');
+      if (pos != std::string::npos) {
+        std::string name = ltrim(rtrim(modified_line.substr(0, pos)));
+        std::string expr = ltrim(rtrim(modified_line.substr(pos + 1)));
+        if (!expr.empty() && expr.back() == ';') expr.pop_back();
+        nodes.push_back(
+            std::make_shared<PropertyDef>(visibility, is_static, name, expr));
+        idx++;
+        continue;
+      }
     }
 
     /* function */

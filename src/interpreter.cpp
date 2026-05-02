@@ -390,7 +390,7 @@ Value Interpreter::parse_expression(std::string expr,
         auto instance_env = std::make_shared<Environment>(class_def.class_env);
         auto instance = Value::make_object(class_name, instance_env);
 
-        const FunctionDefEntry *init_method = nullptr;
+        const MethodDefEntry *init_method = nullptr;
         std::string current_class = class_name;
         while (!current_class.empty()) {
           auto cls_it = interp->classes.find(current_class);
@@ -491,44 +491,84 @@ Value Interpreter::parse_expression(std::string expr,
               const auto &class_def = class_it->second;
               auto instance_env =
                   std::make_shared<Environment>(class_def.class_env);
-              auto instance = Value::make_object(id, instance_env);
+              auto instance = Value::make_object(id, instance_env, class_def.metadata);
 
-              // Call __init__ if it exists (with inheritance)
-              const FunctionDefEntry *init_method = nullptr;
-              std::string current_class = id;
-              while (!current_class.empty()) {
-                auto cls_it = interp->classes.find(current_class);
-                if (cls_it != interp->classes.end()) {
-                  auto meth_it = cls_it->second.methods.find("__init__");
-                  if (meth_it != cls_it->second.methods.end()) {
-                    init_method = &meth_it->second;
-                    break;
+              // Add static members to the properties
+              if (class_def.metadata &&
+                  class_def.metadata->static_members) {
+                auto static_keys =
+                    class_def.metadata->static_members->keys();
+                for (const auto &key : static_keys) {
+                  auto val =
+                      class_def.metadata->static_members->get(key);
+                  if (val) {
+                    instance_env->set(key, *val);
                   }
-                  current_class = cls_it->second.parent.value_or("");
-                } else {
-                  break;
                 }
               }
 
-              if (init_method) {
-                if (init_method->params.size() != args.size() + 1) {
-                  error("__init__() expects " +
-                        std::to_string(
-                            static_cast<int>(init_method->params.size()) - 1) +
-                        " arguments but got " + std::to_string(args.size()));
+              // Call constructor if it exists
+              if (!class_def.constructor.empty()) {
+                if (class_def.constructor_params.size() !=
+                    args.size() + 1) {
+                  error("constructor() expects " +
+                        std::to_string(static_cast<int>(
+                            class_def.constructor_params.size()) -
+                                       1) +
+                        " arguments but got " +
+                        std::to_string(args.size()));
                 }
                 auto init_env =
-                    std::make_shared<Environment>(init_method->def_env);
-                init_env->set(init_method->params[0], instance);  // self
+                    std::make_shared<Environment>(class_def.class_env);
+                init_env->set(class_def.constructor_params[0], instance);  // self
                 for (size_t i = 0; i < args.size(); ++i) {
-                  init_env->set(init_method->params[i + 1], args[i]);
+                  init_env->set(class_def.constructor_params[i + 1], args[i]);
                 }
                 try {
-                  interp->execute_block(init_method->block, init_env);
+                  interp->execute_block(class_def.constructor, init_env);
                 } catch (const std::string &) {
                 }
-              } else if (!args.empty()) {
-                error("Class '" + id + "' does not accept arguments");
+              } else {
+                // Call __init__ if it exists (with inheritance)
+                const MethodDefEntry *init_method = nullptr;
+                std::string current_class = id;
+                while (!current_class.empty()) {
+                  auto cls_it = interp->classes.find(current_class);
+                  if (cls_it != interp->classes.end()) {
+                    auto meth_it = cls_it->second.methods.find("__init__");
+                    if (meth_it != cls_it->second.methods.end()) {
+                      init_method = &meth_it->second;
+                      break;
+                    }
+                    current_class =
+                        cls_it->second.parent.value_or("");
+                  } else {
+                    break;
+                  }
+                }
+
+                if (init_method) {
+                  if (init_method->params.size() != args.size() + 1) {
+                    error("__init__() expects " +
+                          std::to_string(static_cast<int>(
+                              init_method->params.size()) -
+                                         1) +
+                          " arguments but got " +
+                          std::to_string(args.size()));
+                  }
+                  auto init_env =
+                      std::make_shared<Environment>(init_method->def_env);
+                  init_env->set(init_method->params[0], instance);  // self
+                  for (size_t i = 0; i < args.size(); ++i) {
+                    init_env->set(init_method->params[i + 1], args[i]);
+                  }
+                  try {
+                    interp->execute_block(init_method->block, init_env);
+                  } catch (const std::string &) {
+                  }
+                } else if (!args.empty()) {
+                  error("Class '" + id + "' does not accept arguments");
+                }
               }
               base_val = instance;
               continue;
@@ -606,7 +646,7 @@ Value Interpreter::parse_expression(std::string expr,
               }
 
               // Find method with inheritance
-              const FunctionDefEntry *method = nullptr;
+              const MethodDefEntry *method = nullptr;
               std::string current_class = obj_inst->class_name;
               while (!current_class.empty()) {
                 auto cls_it = interp->classes.find(current_class);
@@ -625,6 +665,11 @@ Value Interpreter::parse_expression(std::string expr,
               if (!method) {
                 error("Method '" + member + "' not found in class '" +
                       obj_inst->class_name + "' or its parents");
+              }
+
+              // Check visibility (basic check - private/protected require different logic)
+              if (method->visibility == "private") {
+                error("Cannot access private method '" + member + "'");
               }
 
               if (method->params.size() != args.size() + 1) {
@@ -1091,17 +1136,52 @@ Value Interpreter::execute_block(const NodeList &nodes,
         ClassDefEntry class_entry;
         class_entry.name = c->name;
         class_entry.parent = c->parent;
-        class_entry.class_env =
-            env;  // capture the class definition environment
+        class_entry.class_env = env;
 
-        // Extract methods from class body
+        // Create class metadata
+        class_entry.metadata = std::make_shared<ClassMetadata>();
+        class_entry.metadata->class_name = c->name;
+        class_entry.metadata->static_members =
+            std::make_shared<Environment>(nullptr);
+
+        // Extract methods, properties, and constructor from class body
         for (const auto &stmt : c->block) {
           if (auto fd = std::dynamic_pointer_cast<FunctionDef>(stmt)) {
-            FunctionDefEntry method;
+            // Legacy function definition in class (treated as public method)
+            MethodDefEntry method;
             method.params = fd->params;
             method.block = fd->block;
             method.def_env = env;
+            method.visibility = "public";
+            method.is_static = false;
             class_entry.methods[fd->name] = std::move(method);
+            class_entry.metadata->method_visibility[fd->name] = "public";
+            class_entry.metadata->method_is_static[fd->name] = false;
+          } else if (auto md = std::dynamic_pointer_cast<MethodDef>(stmt)) {
+            // Method definition with visibility and static modifiers
+            MethodDefEntry method;
+            method.params = md->params;
+            method.block = md->block;
+            method.def_env = env;
+            method.visibility = md->visibility;
+            method.is_static = md->is_static;
+            class_entry.methods[md->name] = std::move(method);
+            class_entry.metadata->method_visibility[md->name] = md->visibility;
+            class_entry.metadata->method_is_static[md->name] = md->is_static;
+          } else if (auto pd = std::dynamic_pointer_cast<PropertyDef>(stmt)) {
+            // Property definition with visibility and static modifiers
+            Value prop_val = eval_expr(pd->expr, env);
+            if (pd->is_static) {
+              class_entry.static_members[pd->name] = prop_val;
+              class_entry.metadata->static_members->set(pd->name, prop_val);
+            }
+            // Non-static properties are initialized for each instance
+            // (handled in constructor)
+          } else if (auto cons =
+                         std::dynamic_pointer_cast<ConstructorDef>(stmt)) {
+            // Constructor definition
+            class_entry.constructor = cons->block;
+            class_entry.constructor_params = cons->params;
           }
         }
 

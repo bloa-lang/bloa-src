@@ -5,7 +5,7 @@
 #include "bloa/interpreter.hpp"
 #include "bloa/stdlib.hpp"
 
-#define BLOA_VERSION "1.0.0-RC1"
+#define BLOA_VERSION "1.0.0-RC2"
 
 void print_help() {
   std::cout << "BLOA — Lightweight scripting language\n"
