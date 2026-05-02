@@ -1,3 +1,0 @@
-say capitalize("hello world")
-say getenv("HOME")
-say array_reverse([1,2,3,4])

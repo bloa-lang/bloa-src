@@ -31,6 +31,6 @@ run() {
 
 run "$ROOT/test_json.bloa" '[["a","b","c"],["1","2","3"]]'
 run "$ROOT/test_csv.bloa" '[["a","b","c"],["1","2","3"]]'
-run "$ROOT/test_misc.bloa" $'true\nYWJj\nabc\ntrue\nfoo_bar\ntrue\nbar\n.txt\n/tmp\nfoo.txt\n2\ntrue'
+run "$ROOT/test_misc.bloa" $'true\nYWJj\nabc\ntrue\nfoo_bar\ntrue\nbar\n.txt\n/tmp\nfoo.txt\n3\ntrue'
 
 echo "All tests passed."

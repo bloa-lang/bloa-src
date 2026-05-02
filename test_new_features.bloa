@@ -1,7 +1,0 @@
-say factorial(5)
-say gcd(12, 18)
-say lcm(4, 5)
-say is_prime(7)
-say array_sum([1,2,3,4])
-say array_product([2,3,4])
-say string_format("Hello {0}, you have {1} messages", "Alice", 5)

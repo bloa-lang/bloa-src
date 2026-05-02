@@ -89,46 +89,12 @@ struct MemberAssign : Node {
       : object(std::move(o)), member(std::move(m)), expr(std::move(e)) {}
 };
 
-struct MethodDef : Node {
-  std::string visibility;  // "public", "protected", "private"
-  bool is_static;
-  std::string name;
-  std::vector<std::string> params;
-  NodeList block;
-  MethodDef(std::string vis, bool is_stat, std::string n,
-            std::vector<std::string> p, NodeList b)
-      : visibility(std::move(vis)),
-        is_static(is_stat),
-        name(std::move(n)),
-        params(std::move(p)),
-        block(std::move(b)) {}
-};
-
-struct PropertyDef : Node {
-  std::string visibility;  // "public", "protected", "private"
-  bool is_static;
-  std::string name;
-  std::string expr;
-  PropertyDef(std::string vis, bool is_stat, std::string n, std::string e)
-      : visibility(std::move(vis)),
-        is_static(is_stat),
-        name(std::move(n)),
-        expr(std::move(e)) {}
-};
-
 struct ClassDef : Node {
   std::string name;
   std::optional<std::string> parent;
   NodeList block;
   ClassDef(std::string n, std::optional<std::string> p, NodeList b)
       : name(std::move(n)), parent(std::move(p)), block(std::move(b)) {}
-};
-
-struct ConstructorDef : Node {
-  std::vector<std::string> params;
-  NodeList block;
-  ConstructorDef(std::vector<std::string> p, NodeList b)
-      : params(std::move(p)), block(std::move(b)) {}
 };
 
 struct While : Node {

@@ -11,15 +11,12 @@
 namespace bloa {
 
 struct Environment;  // forward declaration
-struct ClassMetadata;  // forward declaration
 
 struct ObjectInstance {
   std::string class_name;
   std::shared_ptr<Environment> properties;
-  std::shared_ptr<ClassMetadata> class_meta;  // Reference to class metadata
-  ObjectInstance(std::string c, std::shared_ptr<Environment> p,
-                 std::shared_ptr<ClassMetadata> meta = nullptr)
-      : class_name(std::move(c)), properties(std::move(p)), class_meta(std::move(meta)) {}
+  ObjectInstance(std::string c, std::shared_ptr<Environment> p)
+      : class_name(std::move(c)), properties(std::move(p)) {}
 };
 
 struct Reference {
@@ -71,16 +68,6 @@ struct Value {
     Value val;
     val.v = std::make_shared<ObjectInstance>(std::move(class_name),
                                              std::move(properties));
-    return val;
-  }
-
-  static Value make_object(std::string class_name,
-                           std::shared_ptr<Environment> properties,
-                           std::shared_ptr<ClassMetadata> metadata) {
-    Value val;
-    val.v = std::make_shared<ObjectInstance>(std::move(class_name),
-                                             std::move(properties),
-                                             std::move(metadata));
     return val;
   }
 
@@ -146,19 +133,7 @@ struct Value {
 
 struct Variable {
   Value value;
-  std::string visibility;  // "", "public", "protected", "private"
-  bool is_static;
-  Variable() : value(), visibility("public"), is_static(false) {}
-  Variable(Value val, std::string vis = "public", bool is_st = false)
-      : value(std::move(val)), visibility(std::move(vis)), is_static(is_st) {}
-};
-
-// ClassMetadata stores static members and method information
-struct ClassMetadata {
-  std::string class_name;
-  std::shared_ptr<Environment> static_members;
-  std::unordered_map<std::string, std::string> method_visibility;  // method_name -> visibility
-  std::unordered_map<std::string, bool> method_is_static;  // method_name -> is_static
+  std::string visibility;
 };
 
 struct Environment {

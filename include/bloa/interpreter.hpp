@@ -23,22 +23,11 @@ class Interpreter {
     NodeList block;
     std::shared_ptr<Environment> def_env;
   };
-  struct MethodDefEntry {
-    std::vector<std::string> params;
-    NodeList block;
-    std::shared_ptr<Environment> def_env;
-    std::string visibility;  // "public", "protected", "private"
-    bool is_static;
-  };
   struct ClassDefEntry {
     std::string name;
     std::optional<std::string> parent;
-    std::unordered_map<std::string, MethodDefEntry> methods;
-    std::unordered_map<std::string, Value> static_members;
-    NodeList constructor;
-    std::vector<std::string> constructor_params;
+    std::unordered_map<std::string, FunctionDefEntry> methods;
     std::shared_ptr<Environment> class_env;
-    std::shared_ptr<ClassMetadata> metadata;
   };
   std::unordered_map<std::string, FunctionDefEntry> functions;
   std::unordered_map<std::string, ClassDefEntry> classes;

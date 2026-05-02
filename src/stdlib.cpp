@@ -600,38 +600,14 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("sin", Value::make_str("__builtin_sin"));
   env->set("cos", Value::make_str("__builtin_cos"));
   env->set("tan", Value::make_str("__builtin_tan"));
-  env->set("asin", Value::make_str("__builtin_asin"));
-  env->set("acos", Value::make_str("__builtin_acos"));
-  env->set("atan", Value::make_str("__builtin_atan"));
-  env->set("atan2", Value::make_str("__builtin_atan2"));
-  env->set("sinh", Value::make_str("__builtin_sinh"));
-  env->set("cosh", Value::make_str("__builtin_cosh"));
-  env->set("tanh", Value::make_str("__builtin_tanh"));
   env->set("log", Value::make_str("__builtin_log"));
-  env->set("log10", Value::make_str("__builtin_log10"));
   env->set("exp", Value::make_str("__builtin_exp"));
   env->set("abs", Value::make_str("__builtin_abs"));
   env->set("floor", Value::make_str("__builtin_floor"));
   env->set("ceil", Value::make_str("__builtin_ceil"));
   env->set("round", Value::make_str("__builtin_round"));
-  env->set("fmod", Value::make_str("__builtin_fmod"));
-  env->set("degrees", Value::make_str("__builtin_degrees"));
-  env->set("radians", Value::make_str("__builtin_radians"));
   env->set("pi", Value::make_str("__builtin_pi"));
   env->set("e", Value::make_str("__builtin_e"));
-  env->set("factorial", Value::make_str("__builtin_factorial"));
-  env->set("gcd", Value::make_str("__builtin_gcd"));
-  env->set("lcm", Value::make_str("__builtin_lcm"));
-  env->set("is_prime", Value::make_str("__builtin_is_prime"));
-  env->set("array_sum", Value::make_str("__builtin_array_sum"));
-  env->set("array_product", Value::make_str("__builtin_array_product"));
-  env->set("string_format", Value::make_str("__builtin_string_format"));
-  env->set("array_reverse", Value::make_str("__builtin_array_reverse"));
-  env->set("array_sort", Value::make_str("__builtin_array_sort"));
-  env->set("array_unique", Value::make_str("__builtin_array_unique"));
-  env->set("array_slice", Value::make_str("__builtin_array_slice"));
-  env->set("array_join", Value::make_str("__builtin_array_join"));
-  env->set("array_split", Value::make_str("__builtin_array_split"));
 
   // I/O functions
   env->set("read_file", Value::make_str("__builtin_read_file"));
@@ -660,39 +636,11 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("contains", Value::make_str("__builtin_contains"));
   env->set("reverse", Value::make_str("__builtin_reverse"));
   env->set("repeat", Value::make_str("__builtin_repeat"));
-  env->set("capitalize", Value::make_str("__builtin_capitalize"));
-  env->set("title", Value::make_str("__builtin_title"));
-  env->set("swapcase", Value::make_str("__builtin_swapcase"));
-  env->set("zfill", Value::make_str("__builtin_zfill"));
-  env->set("lstrip", Value::make_str("__builtin_lstrip"));
-  env->set("rstrip", Value::make_str("__builtin_rstrip"));
-  env->set("isalnum", Value::make_str("__builtin_isalnum"));
-  env->set("isalpha", Value::make_str("__builtin_isalpha"));
-  env->set("isdigit", Value::make_str("__builtin_isdigit"));
-  env->set("islower", Value::make_str("__builtin_islower"));
-  env->set("isupper", Value::make_str("__builtin_isupper"));
-  env->set("isspace", Value::make_str("__builtin_isspace"));
-  env->set("istitle", Value::make_str("__builtin_istitle"));
 
   // Utility functions
   env->set("random_int", Value::make_str("__builtin_random_int"));
   env->set("random_float", Value::make_str("__builtin_random_float"));
   env->set("now", Value::make_str("__builtin_now"));
-  env->set("timestamp", Value::make_str("__builtin_timestamp"));
-  env->set("sleep", Value::make_str("__builtin_sleep"));
-  env->set("is_even", Value::make_str("__builtin_is_even"));
-  env->set("is_odd", Value::make_str("__builtin_is_odd"));
-  env->set("sign", Value::make_str("__builtin_sign"));
-  env->set("sqr", Value::make_str("__builtin_sqr"));
-  env->set("capitalize", Value::make_str("__builtin_capitalize"));
-  env->set("swapcase", Value::make_str("__builtin_swapcase"));
-  env->set("indent", Value::make_str("__builtin_indent"));
-  env->set("file_lines_count", Value::make_str("__builtin_file_lines_count"));
-  env->set("file_head", Value::make_str("__builtin_file_head"));
-  env->set("file_tail", Value::make_str("__builtin_file_tail"));
-  env->set("simple_hash", Value::make_str("__builtin_simple_hash"));
-  env->set("is_nan", Value::make_str("__builtin_is_nan"));
-  env->set("is_inf", Value::make_str("__builtin_is_inf"));
   env->set("copy", Value::make_str("__builtin_copy"));
   env->set("clone", Value::make_str("__builtin_clone"));
   env->set("slice", Value::make_str("__builtin_slice"));
@@ -700,12 +648,6 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("sum", Value::make_str("__builtin_sum"));
   env->set("min", Value::make_str("__builtin_min"));
   env->set("max", Value::make_str("__builtin_max"));
-  env->set("getenv", Value::make_str("__builtin_getenv"));
-  env->set("setenv", Value::make_str("__builtin_setenv"));
-  env->set("system", Value::make_str("__builtin_system"));
-  env->set("exit", Value::make_str("__builtin_exit"));
-  env->set("getcwd", Value::make_str("__builtin_getcwd"));
-  env->set("chdir", Value::make_str("__builtin_chdir"));
   env->set("type", Value::make_str("__builtin_type"));
   env->set("vars", Value::make_str("__builtin_vars"));
   env->set("keys", Value::make_str("__builtin_keys"));
@@ -1378,51 +1320,10 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::tan(x));
   }
-  if (marker == "__builtin_asin") {
-    if (args.size() != 1) throw std::runtime_error("asin() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::asin(x));
-  }
-  if (marker == "__builtin_acos") {
-    if (args.size() != 1) throw std::runtime_error("acos() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::acos(x));
-  }
-  if (marker == "__builtin_atan") {
-    if (args.size() != 1) throw std::runtime_error("atan() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::atan(x));
-  }
-  if (marker == "__builtin_atan2") {
-    if (args.size() != 2) throw std::runtime_error("atan2() requires 2 arguments");
-    double y = value_as_number(args[0]).as_number();
-    double x = value_as_number(args[1]).as_number();
-    return Value::make_double(std::atan2(y, x));
-  }
-  if (marker == "__builtin_sinh") {
-    if (args.size() != 1) throw std::runtime_error("sinh() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::sinh(x));
-  }
-  if (marker == "__builtin_cosh") {
-    if (args.size() != 1) throw std::runtime_error("cosh() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::cosh(x));
-  }
-  if (marker == "__builtin_tanh") {
-    if (args.size() != 1) throw std::runtime_error("tanh() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::tanh(x));
-  }
   if (marker == "__builtin_log") {
     if (args.size() != 1) throw std::runtime_error("log() requires 1 argument");
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::log(x));
-  }
-  if (marker == "__builtin_log10") {
-    if (args.size() != 1) throw std::runtime_error("log10() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(std::log10(x));
   }
   if (marker == "__builtin_exp") {
     if (args.size() != 1) throw std::runtime_error("exp() requires 1 argument");
@@ -1452,184 +1353,11 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
     double x = value_as_number(args[0]).as_number();
     return Value::make_double(std::round(x));
   }
-  if (marker == "__builtin_fmod") {
-    if (args.size() != 2)
-      throw std::runtime_error("fmod() requires 2 arguments");
-    double x = value_as_number(args[0]).as_number();
-    double y = value_as_number(args[1]).as_number();
-    return Value::make_double(std::fmod(x, y));
-  }
-  if (marker == "__builtin_degrees") {
-    if (args.size() != 1)
-      throw std::runtime_error("degrees() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(x * 180.0 / 3.141592653589793);
-  }
-  if (marker == "__builtin_radians") {
-    if (args.size() != 1)
-      throw std::runtime_error("radians() requires 1 argument");
-    double x = value_as_number(args[0]).as_number();
-    return Value::make_double(x * 3.141592653589793 / 180.0);
-  }
   if (marker == "__builtin_pi") {
     return Value::make_double(3.141592653589793);
   }
   if (marker == "__builtin_e") {
     return Value::make_double(2.718281828459045);
-  }
-  if (marker == "__builtin_factorial") {
-    if (args.size() != 1)
-      throw std::runtime_error("factorial() requires 1 argument");
-    int64_t n = static_cast<int64_t>(value_as_number(args[0]).as_number());
-    if (n < 0) throw std::runtime_error("factorial() requires non-negative integer");
-    int64_t result = 1;
-    for (int64_t i = 2; i <= n; ++i) result *= i;
-    return Value::make_int(result);
-  }
-  if (marker == "__builtin_gcd") {
-    if (args.size() != 2)
-      throw std::runtime_error("gcd() requires 2 arguments");
-    int64_t a = static_cast<int64_t>(value_as_number(args[0]).as_number());
-    int64_t b = static_cast<int64_t>(value_as_number(args[1]).as_number());
-    while (b != 0) {
-      int64_t t = b;
-      b = a % b;
-      a = t;
-    }
-    return Value::make_int(a);
-  }
-  if (marker == "__builtin_lcm") {
-    if (args.size() != 2)
-      throw std::runtime_error("lcm() requires 2 arguments");
-    int64_t a = static_cast<int64_t>(value_as_number(args[0]).as_number());
-    int64_t b = static_cast<int64_t>(value_as_number(args[1]).as_number());
-    if (a == 0 || b == 0) return Value::make_int(0);
-    int64_t gcd = a;
-    int64_t temp_b = b;
-    while (temp_b != 0) {
-      int64_t t = temp_b;
-      temp_b = gcd % temp_b;
-      gcd = t;
-    }
-    return Value::make_int(a / gcd * b);
-  }
-  if (marker == "__builtin_is_prime") {
-    if (args.size() != 1)
-      throw std::runtime_error("is_prime() requires 1 argument");
-    int64_t n = static_cast<int64_t>(value_as_number(args[0]).as_number());
-    if (n <= 1) return Value::make_bool(false);
-    if (n <= 3) return Value::make_bool(true);
-    if (n % 2 == 0 || n % 3 == 0) return Value::make_bool(false);
-    for (int64_t i = 5; i * i <= n; i += 6) {
-      if (n % i == 0 || n % (i + 2) == 0) return Value::make_bool(false);
-    }
-    return Value::make_bool(true);
-  }
-  if (marker == "__builtin_array_sum") {
-    if (args.size() != 1)
-      throw std::runtime_error("array_sum() requires 1 argument");
-    const auto &list = as_list(args[0]);
-    double sum = 0;
-    for (const auto &item : list) {
-      sum += value_as_number(item).as_number();
-    }
-    return Value::make_double(sum);
-  }
-  if (marker == "__builtin_array_product") {
-    if (args.size() != 1)
-      throw std::runtime_error("array_product() requires 1 argument");
-    const auto &list = as_list(args[0]);
-    double product = 1;
-    for (const auto &item : list) {
-      product *= value_as_number(item).as_number();
-    }
-    return Value::make_double(product);
-  }
-  if (marker == "__builtin_array_reverse") {
-    if (args.size() != 1)
-      throw std::runtime_error("array_reverse() requires 1 argument");
-    auto list = copy_list(as_list(args[0]));
-    std::reverse(list.begin(), list.end());
-    return Value::make_list(std::move(list));
-  }
-  if (marker == "__builtin_array_sort") {
-    if (args.size() != 1)
-      throw std::runtime_error("array_sort() requires 1 argument");
-    auto list = copy_list(as_list(args[0]));
-    std::sort(list.begin(), list.end(), [](const Value &a, const Value &b) {
-      return value_to_string(a) < value_to_string(b);
-    });
-    return Value::make_list(std::move(list));
-  }
-  if (marker == "__builtin_array_unique") {
-    if (args.size() != 1)
-      throw std::runtime_error("array_unique() requires 1 argument");
-    const auto &list = as_list(args[0]);
-    std::vector<Value> unique;
-    std::set<std::string> seen;
-    for (const auto &item : list) {
-      std::string str = value_to_string(item);
-      if (seen.insert(str).second) {
-        unique.push_back(item);
-      }
-    }
-    return Value::make_list(std::move(unique));
-  }
-  if (marker == "__builtin_array_slice") {
-    if (args.size() < 2 || args.size() > 3)
-      throw std::runtime_error("array_slice() requires 2 or 3 arguments");
-    const auto &list = as_list(args[0]);
-    int start = static_cast<int>(value_as_number(args[1]).as_number());
-    int end = args.size() > 2 ? static_cast<int>(value_as_number(args[2]).as_number()) : list.size();
-    if (start < 0) start += list.size();
-    if (end < 0) end += list.size();
-    start = std::max(0, start);
-    end = std::min(static_cast<int>(list.size()), end);
-    std::vector<Value> result(list.begin() + start, list.begin() + end);
-    return Value::make_list(std::move(result));
-  }
-  if (marker == "__builtin_array_join") {
-    if (args.size() != 2)
-      throw std::runtime_error("array_join() requires 2 arguments");
-    const auto &list = as_list(args[0]);
-    std::string sep = std::get<std::string>(args[1].v);
-    std::string result;
-    for (size_t i = 0; i < list.size(); ++i) {
-      if (i > 0) result += sep;
-      result += value_to_string(list[i]);
-    }
-    return Value::make_str(result);
-  }
-  if (marker == "__builtin_array_split") {
-    if (args.size() != 2)
-      throw std::runtime_error("array_split() requires 2 arguments");
-    std::string str = std::get<std::string>(args[0].v);
-    std::string sep = std::get<std::string>(args[1].v);
-    std::vector<Value> result;
-    size_t pos = 0;
-    size_t found;
-    while ((found = str.find(sep, pos)) != std::string::npos) {
-      result.push_back(Value::make_str(str.substr(pos, found - pos)));
-      pos = found + sep.length();
-    }
-    result.push_back(Value::make_str(str.substr(pos)));
-    return Value::make_list(std::move(result));
-  }
-  if (marker == "__builtin_string_format") {
-    if (args.size() < 1)
-      throw std::runtime_error("string_format() requires at least 1 argument");
-    std::string format = std::get<std::string>(args[0].v);
-    std::string result = format;
-    for (size_t i = 1; i < args.size(); ++i) {
-      std::string placeholder = "{" + std::to_string(i - 1) + "}";
-      std::string replacement = value_to_string(args[i]);
-      size_t pos = 0;
-      while ((pos = result.find(placeholder, pos)) != std::string::npos) {
-        result.replace(pos, placeholder.length(), replacement);
-        pos += replacement.length();
-      }
-    }
-    return Value::make_str(result);
   }
   if (marker == "__builtin_read_file") {
     if (args.size() != 1)
@@ -1786,124 +1514,6 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
     std::string s = std::get<std::string>(args[0].v);
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
     return Value::make_str(s);
-  }
-  if (marker == "__builtin_capitalize") {
-    if (args.size() != 1)
-      throw std::runtime_error("capitalize() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    if (!s.empty()) {
-      s[0] = ::toupper(s[0]);
-      std::transform(s.begin() + 1, s.end(), s.begin() + 1, ::tolower);
-    }
-    return Value::make_str(s);
-  }
-  if (marker == "__builtin_title") {
-    if (args.size() != 1)
-      throw std::runtime_error("title() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    bool capitalize_next = true;
-    for (char &c : s) {
-      if (std::isspace(c)) {
-        capitalize_next = true;
-      } else if (capitalize_next) {
-        c = ::toupper(c);
-        capitalize_next = false;
-      } else {
-        c = ::tolower(c);
-      }
-    }
-    return Value::make_str(s);
-  }
-  if (marker == "__builtin_swapcase") {
-    if (args.size() != 1)
-      throw std::runtime_error("swapcase() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    std::transform(s.begin(), s.end(), s.begin(), [](char c) {
-      return std::isupper(c) ? ::tolower(c) : ::toupper(c);
-    });
-    return Value::make_str(s);
-  }
-  if (marker == "__builtin_zfill") {
-    if (args.size() != 2)
-      throw std::runtime_error("zfill() requires 2 arguments");
-    std::string s = std::get<std::string>(args[0].v);
-    int width = static_cast<int>(value_as_number(args[1]).as_number());
-    if (static_cast<int>(s.length()) < width) {
-      s = std::string(width - s.length(), '0') + s;
-    }
-    return Value::make_str(s);
-  }
-  if (marker == "__builtin_lstrip") {
-    if (args.size() < 1 || args.size() > 2)
-      throw std::runtime_error("lstrip() requires 1 or 2 arguments");
-    std::string s = std::get<std::string>(args[0].v);
-    std::string chars = args.size() > 1 ? std::get<std::string>(args[1].v) : " \t\n\r\f\v";
-    size_t start = s.find_first_not_of(chars);
-    if (start == std::string::npos) return Value::make_str("");
-    return Value::make_str(s.substr(start));
-  }
-  if (marker == "__builtin_rstrip") {
-    if (args.size() < 1 || args.size() > 2)
-      throw std::runtime_error("rstrip() requires 1 or 2 arguments");
-    std::string s = std::get<std::string>(args[0].v);
-    std::string chars = args.size() > 1 ? std::get<std::string>(args[1].v) : " \t\n\r\f\v";
-    size_t end = s.find_last_not_of(chars);
-    if (end == std::string::npos) return Value::make_str("");
-    return Value::make_str(s.substr(0, end + 1));
-  }
-  if (marker == "__builtin_isalnum") {
-    if (args.size() != 1)
-      throw std::runtime_error("isalnum() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isalnum));
-  }
-  if (marker == "__builtin_isalpha") {
-    if (args.size() != 1)
-      throw std::runtime_error("isalpha() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isalpha));
-  }
-  if (marker == "__builtin_isdigit") {
-    if (args.size() != 1)
-      throw std::runtime_error("isdigit() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isdigit));
-  }
-  if (marker == "__builtin_islower") {
-    if (args.size() != 1)
-      throw std::runtime_error("islower() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::islower));
-  }
-  if (marker == "__builtin_isupper") {
-    if (args.size() != 1)
-      throw std::runtime_error("isupper() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isupper));
-  }
-  if (marker == "__builtin_isspace") {
-    if (args.size() != 1)
-      throw std::runtime_error("isspace() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isspace));
-  }
-  if (marker == "__builtin_istitle") {
-    if (args.size() != 1)
-      throw std::runtime_error("istitle() requires 1 argument");
-    std::string s = std::get<std::string>(args[0].v);
-    if (s.empty()) return Value::make_bool(false);
-    bool expect_upper = true;
-    for (char c : s) {
-      if (std::isspace(c)) {
-        expect_upper = true;
-      } else if (expect_upper) {
-        if (!std::isupper(c)) return Value::make_bool(false);
-        expect_upper = false;
-      } else {
-        if (!std::islower(c)) return Value::make_bool(false);
-      }
-    }
-    return Value::make_bool(true);
   }
   if (marker == "__builtin_trim") {
     if (args.size() != 1)
@@ -2148,45 +1758,6 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
     auto millis =
         std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     return Value::make_int(millis);
-  }
-  if (marker == "__builtin_getenv") {
-    if (args.size() != 1)
-      throw std::runtime_error("getenv() requires 1 argument");
-    std::string name = std::get<std::string>(args[0].v);
-    const char *value = std::getenv(name.c_str());
-    return value ? Value::make_str(value) : Value::make_str("");
-  }
-  if (marker == "__builtin_setenv") {
-    if (args.size() != 2)
-      throw std::runtime_error("setenv() requires 2 arguments");
-    std::string name = std::get<std::string>(args[0].v);
-    std::string value = std::get<std::string>(args[1].v);
-    setenv(name.c_str(), value.c_str(), 1);
-    return Value();
-  }
-  if (marker == "__builtin_system") {
-    if (args.size() != 1)
-      throw std::runtime_error("system() requires 1 argument");
-    std::string cmd = std::get<std::string>(args[0].v);
-    int result = system(cmd.c_str());
-    return Value::make_int(result);
-  }
-  if (marker == "__builtin_exit") {
-    if (args.size() != 1)
-      throw std::runtime_error("exit() requires 1 argument");
-    int code = static_cast<int>(value_as_number(args[0]).as_number());
-    exit(code);
-  }
-  if (marker == "__builtin_getcwd") {
-    if (!args.empty()) throw std::runtime_error("getcwd() takes no arguments");
-    return Value::make_str(fs::current_path().string());
-  }
-  if (marker == "__builtin_chdir") {
-    if (args.size() != 1)
-      throw std::runtime_error("chdir() requires 1 argument");
-    std::string path = std::get<std::string>(args[0].v);
-    fs::current_path(path);
-    return Value();
   }
   throw std::runtime_error("Unknown built-in: " + marker);
 }
