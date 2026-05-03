@@ -1,0 +1,7 @@
+pattern = "tests/test_*.bloa"
+say "Testing glob with pattern: " + pattern
+list = glob(pattern)
+say "Found matches: " + len(list)
+for item in list
+  say "  - " + item
+end

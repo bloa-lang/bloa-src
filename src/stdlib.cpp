@@ -710,6 +710,53 @@ void register_stdlib(std::shared_ptr<Environment> env) {
   env->set("sqlite_query", Value::make_str("__builtin_sqlite_query"));
   env->set("sqlite_exec", Value::make_str("__builtin_sqlite_exec"));
 #endif
+
+  // Color and formatting helpers (ANSI)
+  env->set("color", Value::make_str("__builtin_color"));
+  env->set("red", Value::make_str("__builtin_red"));
+  env->set("green", Value::make_str("__builtin_green"));
+  env->set("blue", Value::make_str("__builtin_blue"));
+  env->set("yellow", Value::make_str("__builtin_yellow"));
+  env->set("magenta", Value::make_str("__builtin_magenta"));
+  env->set("cyan", Value::make_str("__builtin_cyan"));
+  env->set("white", Value::make_str("__builtin_white"));
+  env->set("black", Value::make_str("__builtin_black"));
+  env->set("bold", Value::make_str("__builtin_bold"));
+  env->set("dim", Value::make_str("__builtin_dim"));
+  env->set("italic", Value::make_str("__builtin_italic"));
+  env->set("underline", Value::make_str("__builtin_underline"));
+  env->set("blink", Value::make_str("__builtin_blink"));
+  env->set("reverse", Value::make_str("__builtin_reverse"));
+  env->set("reset", Value::make_str("__builtin_reset"));
+  env->set("bg_red", Value::make_str("__builtin_bg_red"));
+  env->set("bg_green", Value::make_str("__builtin_bg_green"));
+  env->set("bg_blue", Value::make_str("__builtin_bg_blue"));
+  env->set("bg_yellow", Value::make_str("__builtin_bg_yellow"));
+  env->set("bg_magenta", Value::make_str("__builtin_bg_magenta"));
+  env->set("bg_cyan", Value::make_str("__builtin_bg_cyan"));
+  env->set("bg_white", Value::make_str("__builtin_bg_white"));
+  env->set("bg_black", Value::make_str("__builtin_bg_black"));
+
+  env->set("ltrim", Value::make_str("__builtin_ltrim"));
+  env->set("rtrim", Value::make_str("__builtin_rtrim"));
+  env->set("upper", Value::make_str("__builtin_upper"));
+  env->set("lower", Value::make_str("__builtin_lower"));
+  env->set("capitalize", Value::make_str("__builtin_capitalize"));
+  env->set("reverse_str", Value::make_str("__builtin_reverse_str"));
+  env->set("startswith", Value::make_str("__builtin_startswith"));
+  env->set("endswith", Value::make_str("__builtin_endswith"));
+  env->set("index_of", Value::make_str("__builtin_index_of"));
+  env->set("last_index_of", Value::make_str("__builtin_last_index_of"));
+  env->set("unique", Value::make_str("__builtin_unique"));
+  env->set("flatten", Value::make_str("__builtin_flatten"));
+  env->set("log10", Value::make_str("__builtin_log10"));
+  env->set("random", Value::make_str("__builtin_random"));
+  env->set("format", Value::make_str("__builtin_format"));
+  env->set("hex", Value::make_str("__builtin_hex"));
+  env->set("parse_int", Value::make_str("__builtin_parse_int"));
+  env->set("parse_float", Value::make_str("__builtin_parse_float"));
+  env->set("is_digit", Value::make_str("__builtin_is_digit"));
+  env->set("is_alpha", Value::make_str("__builtin_is_alpha"));
 }
 
 Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
@@ -1758,6 +1805,347 @@ Value handle_builtin(const std::string &marker, const std::vector<Value> &args,
     auto millis =
         std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     return Value::make_int(millis);
+  }
+  // Color and formatting functions
+  if (marker == "__builtin_color") {
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("color() requires 1 or 2 arguments");
+    std::string text = value_to_string(args[0]);
+    int code = 37;  // white
+    if (args.size() == 2) {
+      code = static_cast<int>(std::get<int64_t>(args[1].v));
+    }
+    return Value::make_str("\033[" + std::to_string(code) + "m" + text +
+                           "\033[0m");
+  }
+  if (marker == "__builtin_red") {
+    if (args.size() != 1) throw std::runtime_error("red() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[31m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_green") {
+    if (args.size() != 1)
+      throw std::runtime_error("green() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[32m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_blue") {
+    if (args.size() != 1)
+      throw std::runtime_error("blue() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[34m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_yellow") {
+    if (args.size() != 1)
+      throw std::runtime_error("yellow() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[33m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_magenta") {
+    if (args.size() != 1)
+      throw std::runtime_error("magenta() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[35m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_cyan") {
+    if (args.size() != 1)
+      throw std::runtime_error("cyan() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[36m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_white") {
+    if (args.size() != 1)
+      throw std::runtime_error("white() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[37m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_black") {
+    if (args.size() != 1)
+      throw std::runtime_error("black() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[30m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bold") {
+    if (args.size() != 1)
+      throw std::runtime_error("bold() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[1m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_dim") {
+    if (args.size() != 1) throw std::runtime_error("dim() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[2m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_italic") {
+    if (args.size() != 1)
+      throw std::runtime_error("italic() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[3m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_underline") {
+    if (args.size() != 1)
+      throw std::runtime_error("underline() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[4m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_blink") {
+    if (args.size() != 1)
+      throw std::runtime_error("blink() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[5m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_reverse") {
+    if (args.size() != 1)
+      throw std::runtime_error("reverse() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[7m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_reset") {
+    return Value::make_str("\033[0m");
+  }
+  if (marker == "__builtin_bg_red") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_red() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[41m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_green") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_green() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[42m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_blue") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_blue() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[44m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_yellow") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_yellow() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[43m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_magenta") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_magenta() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[45m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_cyan") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_cyan() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[46m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_white") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_white() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[47m" + text + "\033[0m");
+  }
+  if (marker == "__builtin_bg_black") {
+    if (args.size() != 1)
+      throw std::runtime_error("bg_black() requires 1 argument");
+    std::string text = value_to_string(args[0]);
+    return Value::make_str("\033[40m" + text + "\033[0m");
+  }
+  // Additional string utility functions
+  if (marker == "__builtin_ltrim") {
+    if (args.size() != 1)
+      throw std::runtime_error("ltrim() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    size_t start = s.find_first_not_of(" \t\n\r");
+    return Value::make_str(
+        start == std::string::npos ? "" : s.substr(start));
+  }
+  if (marker == "__builtin_rtrim") {
+    if (args.size() != 1)
+      throw std::runtime_error("rtrim() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    size_t end = s.find_last_not_of(" \t\n\r");
+    return Value::make_str(
+        end == std::string::npos ? "" : s.substr(0, end + 1));
+  }
+  if (marker == "__builtin_upper") {
+    if (args.size() != 1)
+      throw std::runtime_error("upper() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+    return Value::make_str(s);
+  }
+  if (marker == "__builtin_lower") {
+    if (args.size() != 1)
+      throw std::runtime_error("lower() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+    return Value::make_str(s);
+  }
+  if (marker == "__builtin_capitalize") {
+    if (args.size() != 1)
+      throw std::runtime_error("capitalize() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    if (!s.empty()) {
+      s[0] = ::toupper(s[0]);
+      for (size_t i = 1; i < s.length(); i++)
+        s[i] = ::tolower(s[i]);
+    }
+    return Value::make_str(s);
+  }
+  if (marker == "__builtin_reverse_str") {
+    if (args.size() != 1)
+      throw std::runtime_error("reverse_str() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    std::reverse(s.begin(), s.end());
+    return Value::make_str(s);
+  }
+  if (marker == "__builtin_startswith") {
+    if (args.size() != 2)
+      throw std::runtime_error("startswith() requires 2 arguments");
+    std::string s = std::get<std::string>(args[0].v);
+    std::string prefix = std::get<std::string>(args[1].v);
+    return Value::make_bool(s.substr(0, prefix.length()) == prefix);
+  }
+  if (marker == "__builtin_endswith") {
+    if (args.size() != 2)
+      throw std::runtime_error("endswith() requires 2 arguments");
+    std::string s = std::get<std::string>(args[0].v);
+    std::string suffix = std::get<std::string>(args[1].v);
+    if (suffix.length() > s.length()) return Value::make_bool(false);
+    return Value::make_bool(
+        s.substr(s.length() - suffix.length()) == suffix);
+  }
+  if (marker == "__builtin_index_of") {
+    if (args.size() < 2 || args.size() > 3)
+      throw std::runtime_error("index_of() requires 2 or 3 arguments");
+    std::string s = std::get<std::string>(args[0].v);
+    std::string search = std::get<std::string>(args[1].v);
+    size_t start = 0;
+    if (args.size() == 3) {
+      start = static_cast<size_t>(std::get<int64_t>(args[2].v));
+    }
+    size_t pos = s.find(search, start);
+    return Value::make_int(
+        pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+  }
+  if (marker == "__builtin_last_index_of") {
+    if (args.size() < 2)
+      throw std::runtime_error("last_index_of() requires 2 arguments");
+    std::string s = std::get<std::string>(args[0].v);
+    std::string search = std::get<std::string>(args[1].v);
+    size_t pos = s.rfind(search);
+    return Value::make_int(
+        pos == std::string::npos ? -1 : static_cast<int64_t>(pos));
+  }
+  if (marker == "__builtin_unique") {
+    if (args.size() != 1)
+      throw std::runtime_error("unique() requires 1 argument");
+    const auto &list = std::get<std::vector<Value>>(args[0].v);
+    std::vector<Value> result;
+    std::set<std::string> seen;
+    for (const auto &item : list) {
+      std::string str = value_to_string(item);
+      if (seen.find(str) == seen.end()) {
+        result.push_back(item);
+        seen.insert(str);
+      }
+    }
+    return Value::make_list(result);
+  }
+  if (marker == "__builtin_flatten") {
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("flatten() requires 1 or 2 arguments");
+    int depth = 1;
+    if (args.size() == 2) {
+      depth = static_cast<int>(std::get<int64_t>(args[1].v));
+    }
+    const auto &list = std::get<std::vector<Value>>(args[0].v);
+    std::vector<Value> result;
+    std::function<void(const std::vector<Value> &, int)> flatten_helper =
+        [&](const std::vector<Value> &v, int d) {
+          for (const auto &item : v) {
+            if (d > 0 && std::holds_alternative<std::vector<Value>>(item.v)) {
+              flatten_helper(std::get<std::vector<Value>>(item.v), d - 1);
+            } else {
+              result.push_back(item);
+            }
+          }
+        };
+    flatten_helper(list, depth);
+    return Value::make_list(result);
+  }
+  if (marker == "__builtin_log10") {
+    if (args.size() != 1)
+      throw std::runtime_error("log10() requires 1 argument");
+    double n = value_as_number(args[0]).as_number();
+    return Value::make_double(std::log10(n));
+  }
+  if (marker == "__builtin_random") {
+    if (!args.empty())
+      throw std::runtime_error("random() takes no arguments");
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> dist(0.0, 1.0);
+    return Value::make_double(dist(gen));
+  }
+  if (marker == "__builtin_format") {
+    if (args.empty())
+      throw std::runtime_error("format() requires at least 1 argument");
+    std::string fmt = std::get<std::string>(args[0].v);
+    std::string result = fmt;
+    for (size_t i = 1; i < args.size(); i++) {
+      std::string placeholder = "{" + std::to_string(i - 1) + "}";
+      size_t pos = result.find(placeholder);
+      if (pos != std::string::npos) {
+        result.replace(pos, placeholder.length(), value_to_string(args[i]));
+      }
+    }
+    return Value::make_str(result);
+  }
+  if (marker == "__builtin_hex") {
+    if (args.size() != 1)
+      throw std::runtime_error("hex() requires 1 argument");
+    int64_t num = std::get<int64_t>(args[0].v);
+    std::stringstream ss;
+    ss << "0x" << std::hex << num;
+    return Value::make_str(ss.str());
+  }
+  if (marker == "__builtin_parse_int") {
+    if (args.size() < 1 || args.size() > 2)
+      throw std::runtime_error("parse_int() requires 1 or 2 arguments");
+    std::string s = std::get<std::string>(args[0].v);
+    int base = 10;
+    if (args.size() == 2) {
+      base = static_cast<int>(std::get<int64_t>(args[1].v));
+    }
+    try {
+      return Value::make_int(std::stoll(s, nullptr, base));
+    } catch (...) {
+      throw std::runtime_error("parse_int() - invalid integer format");
+    }
+  }
+  if (marker == "__builtin_parse_float") {
+    if (args.size() != 1)
+      throw std::runtime_error("parse_float() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    try {
+      return Value::make_double(std::stod(s));
+    } catch (...) {
+      throw std::runtime_error("parse_float() - invalid float format");
+    }
+  }
+  if (marker == "__builtin_is_digit") {
+    if (args.size() != 1)
+      throw std::runtime_error("is_digit() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isdigit));
+  }
+  if (marker == "__builtin_is_alpha") {
+    if (args.size() != 1)
+      throw std::runtime_error("is_alpha() requires 1 argument");
+    std::string s = std::get<std::string>(args[0].v);
+    return Value::make_bool(!s.empty() && std::all_of(s.begin(), s.end(), ::isalpha));
   }
   throw std::runtime_error("Unknown built-in: " + marker);
 }

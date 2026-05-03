@@ -1,0 +1,7 @@
+// Test color support
+say red("This is red!")
+say green("This is green!")
+say blue("This is blue!")
+say bold("This is bold!")
+say underline("This is underlined!")
+say "Color functions work!"

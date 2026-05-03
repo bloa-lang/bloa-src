@@ -1,0 +1,46 @@
+// Test new features
+
+// Color support
+say red("Colors work!")
+say green("Green text")
+say bold("Bold text")
+
+// String functions  
+name = "hello world"
+say upper(name)
+say capitalize(name)
+say reverse_str(name)
+
+// Array functions
+list = [1, 2, 2, 3, 3, 3]
+say unique(list)
+
+nested = [[1, 2], [3, [4, 5]]]
+say flatten(nested)
+say flatten(nested, 2)
+
+// String searching
+text = "Hello, Hello!"
+say index_of(text, "Hello")
+say last_index_of(text, "Hello")
+
+// Check if strings start/end with
+say startswith("hello", "he")
+say endswith("hello", "lo")
+
+// Math functions
+say sqrt(16)
+say pow(2, 8)
+say log10(100)
+say abs(-42)
+
+// Random
+rand = random()
+say "Random: ok"  // Don't print the actual value since it's unpredictable
+
+// Trim functions
+say ltrim("  hello  ")
+say rtrim("  hello  ")
+say trim("  hello  ")
+
+echo "All tests completed!"

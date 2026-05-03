@@ -20,7 +20,8 @@ run() {
   name="$(basename "$script")"
   echo "Running $name"
   local output
-  output="$("$BLOA" "$script")"
+  # Run from the tests directory so relative paths work correctly
+  output="$(cd "$ROOT" && "$BLOA" "$name")"
   if [[ "$output" != "$expected" ]]; then
     echo "FAILED $name"
     echo "Expected:"$'\n'"$expected"
@@ -29,8 +30,8 @@ run() {
   fi
 }
 
-run "$ROOT/test_json.bloa" '[["a","b","c"],["1","2","3"]]'
-run "$ROOT/test_csv.bloa" '[["a","b","c"],["1","2","3"]]'
-run "$ROOT/test_misc.bloa" $'true\nYWJj\nabc\ntrue\nfoo_bar\ntrue\nbar\n.txt\n/tmp\nfoo.txt\n3\ntrue'
+run "test_json.bloa" '[["a","b","c"],["1","2","3"]]'
+run "test_csv.bloa" '[["a","b","c"],["1","2","3"]]'
+run "test_misc.bloa" $'true\nYWJj\nabc\ntrue\nfoo_bar\ntrue\nbar\n.txt\n/tmp\nfoo.txt\n3\ntrue'
 
 echo "All tests passed."

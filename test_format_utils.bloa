@@ -1,0 +1,20 @@
+// Quick test of new functions
+say "Test format:"
+say format("Hello {0}, you are {1} years old", "Alice", 30)
+
+say "Test hex:"
+say hex(255)
+
+say "Test parse_int:"
+say parse_int("42")
+
+say "Test parse_float:"
+say parse_float("3.14")
+
+say "Test is_digit:"
+say is_digit("12345")
+say is_digit("12a45")
+
+say "Test is_alpha:"
+say is_alpha("hello")
+say is_alpha("hello123")

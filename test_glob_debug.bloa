@@ -1,0 +1,3 @@
+list = glob("tests/test_*.bloa")
+say len(list)
+say list
