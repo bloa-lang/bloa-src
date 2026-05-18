@@ -484,6 +484,12 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_forward_static_call_array arginfo_call_user_func_array
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_parallel_map, 0, 2, IS_ARRAY, 0)
+	ZEND_ARG_CALLABLE_INFO(0, callback, 0)
+	ZEND_ARG_TYPE_INFO(0, items, IS_ARRAY, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, workers, IS_LONG, 0, "0")
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_register_shutdown_function, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, args, IS_MIXED, 0)
@@ -3038,6 +3044,7 @@ static const zend_function_entry ext_functions[] = {
 	ZEND_FE(call_user_func_array, arginfo_call_user_func_array)
 	ZEND_FE(forward_static_call, arginfo_forward_static_call)
 	ZEND_FE(forward_static_call_array, arginfo_forward_static_call_array)
+	ZEND_FE(parallel_map, arginfo_parallel_map)
 	ZEND_FE(register_shutdown_function, arginfo_register_shutdown_function)
 	ZEND_FE(highlight_file, arginfo_highlight_file)
 	ZEND_RAW_FENTRY("show_source", zif_highlight_file, arginfo_show_source, 0, NULL, NULL)

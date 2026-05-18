@@ -2306,8 +2306,18 @@ string:
 	RETURN_TOKEN(T_OPEN_TAG_WITH_ECHO);
 }
 
+<INITIAL>"<?bloa=" {
+	BEGIN(ST_IN_SCRIPTING);
+	RETURN_TOKEN(T_OPEN_TAG_WITH_ECHO);
+}
 
 <INITIAL>"<?php"([ \t]|{NEWLINE}) {
+	HANDLE_NEWLINE(yytext[yyleng-1]);
+	BEGIN(ST_IN_SCRIPTING);
+	RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
+}
+
+<INITIAL>"<?bloa"([ \t]|{NEWLINE}) {
 	HANDLE_NEWLINE(yytext[yyleng-1]);
 	BEGIN(ST_IN_SCRIPTING);
 	RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
@@ -2320,6 +2330,21 @@ string:
 		RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
 	}
 	/* Degenerate case: <?phpX is interpreted as <? phpX with short tags. */
+	if (CG(short_tags)) {
+		yyless(2);
+		BEGIN(ST_IN_SCRIPTING);
+		RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
+	}
+	goto inline_char_handler;
+}
+
+<INITIAL>"<?bloa" {
+	/* Allow <?bloa followed by end of file. */
+	if (YYCURSOR == YYLIMIT) {
+		BEGIN(ST_IN_SCRIPTING);
+		RETURN_OR_SKIP_TOKEN(T_OPEN_TAG);
+	}
+	/* Degenerate case: <?bloaX is interpreted as <? bloaX with short tags. */
 	if (CG(short_tags)) {
 		yyless(2);
 		BEGIN(ST_IN_SCRIPTING);
@@ -2360,6 +2385,10 @@ inline_char_handler:
 					(YYCURSOR + 4 == YYLIMIT ||
 					YYCURSOR[4] == ' ' || YYCURSOR[4] == '\t' ||
 					YYCURSOR[4] == '\n' || YYCURSOR[4] == '\r'))
+				|| (!strncasecmp((char*)YYCURSOR + 1, "bloa", 4) && /* <?bloa[ \t\r\n] */
+					(YYCURSOR + 5 == YYLIMIT ||
+					YYCURSOR[5] == ' ' || YYCURSOR[5] == '\t' ||
+					YYCURSOR[5] == '\n' || YYCURSOR[5] == '\r'))
 			) {
 				YYCURSOR--;
 				break;

@@ -2000,6 +2000,8 @@ function forward_static_call(callable $callback, mixed ...$args): mixed {}
 
 function forward_static_call_array(callable $callback, array $args): mixed {}
 
+function parallel_map(callable $callback, array $items, int $workers = 0): array {}
+
 function register_shutdown_function(callable $callback, mixed ...$args): void {}
 
 /** @refcount 1 */

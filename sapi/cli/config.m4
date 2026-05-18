@@ -27,7 +27,7 @@ if test "$PHP_CLI" != "no"; then
   PHP_ADD_MAKEFILE_FRAGMENT([$abs_srcdir/sapi/cli/Makefile.frag])
 
   dnl Set filename.
-  SAPI_CLI_PATH=sapi/cli/php
+  SAPI_CLI_PATH=sapi/cli/bloa
 
   dnl Select SAPI.
   PHP_SELECT_SAPI([cli],
@@ -56,7 +56,7 @@ if test "$PHP_CLI" != "no"; then
   PHP_SUBST([SAPI_CLI_PATH])
   PHP_SUBST([BUILD_CLI])
 
-  AC_CONFIG_FILES([sapi/cli/php.1])
+  AC_CONFIG_FILES([sapi/cli/bloa.1])
 
   PHP_INSTALL_HEADERS([sapi/cli], [cli.h])
 fi

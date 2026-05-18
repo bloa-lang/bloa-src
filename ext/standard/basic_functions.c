@@ -118,6 +118,71 @@ PHPAPI php_basic_globals basic_globals;
 # include <sanitizer/msan_interface.h>
 #endif
 
+#if defined(ZTS) && !defined(PHP_WIN32)
+typedef struct _bloa_parallel_context {
+	zend_fcall_info_cache fci_cache;
+	zval *values;
+	zval *results;
+	zend_long count;
+	zend_long next_index;
+	pthread_mutex_t mutex;
+	zend_bool failed;
+} bloa_parallel_context;
+
+static void *bloa_parallel_worker(void *arg)
+{
+	bloa_parallel_context *ctx = (bloa_parallel_context *) arg;
+	zend_long index;
+
+	TSRMLS_CACHE_UPDATE();
+
+	while (1) {
+		if (pthread_mutex_lock(&ctx->mutex) != 0) {
+			break;
+		}
+
+		if (ctx->next_index >= ctx->count) {
+			pthread_mutex_unlock(&ctx->mutex);
+			break;
+		}
+
+		index = ctx->next_index++;
+		pthread_mutex_unlock(&ctx->mutex);
+
+		zval retval;
+		zval param;
+		zend_fcall_info fci = empty_fcall_info;
+
+		ZVAL_COPY(&param, &ctx->values[index]);
+		ZVAL_UNDEF(&retval);
+
+		fci.size = sizeof(zend_fcall_info);
+		fci.retval = &retval;
+		fci.param_count = 1;
+		fci.params = &param;
+		fci.named_params = NULL;
+
+		if (zend_call_function(&fci, &ctx->fci_cache) == SUCCESS && Z_TYPE(retval) != IS_UNDEF) {
+			if (Z_ISREF(retval)) {
+				zend_unwrap_reference(&retval);
+			}
+			ZVAL_COPY(&ctx->results[index], &retval);
+			zval_ptr_dtor(&retval);
+		} else {
+			ZVAL_NULL(&ctx->results[index]);
+		}
+
+		if (EG(exception)) {
+			zend_clear_exception();
+		}
+
+		zval_ptr_dtor(&param);
+	}
+
+	return NULL;
+}
+#endif
+
 typedef struct _user_tick_function_entry {
 	zend_fcall_info_cache fci_cache;
 	zval *params;
@@ -1508,6 +1573,143 @@ PHP_FUNCTION(call_user_func_array)
 		}
 		ZVAL_COPY_VALUE(return_value, &retval);
 	}
+}
+/* }}} */
+
+PHP_FUNCTION(parallel_map)
+{
+	zend_fcall_info fci;
+	zend_fcall_info_cache fci_cache = empty_fcall_info_cache;
+	zend_array *input;
+	zend_long workers = 0;
+	zend_long count;
+	zval *values;
+	zval *results;
+	zend_long idx;
+
+	ZEND_PARSE_PARAMETERS_START(2, 3)
+		Z_PARAM_FUNC(fci, fci_cache)
+		Z_PARAM_ARRAY_HT(input)
+		Z_PARAM_OPTIONAL
+		Z_PARAM_LONG(workers)
+	ZEND_PARSE_PARAMETERS_END();
+
+	if (workers <= 0) {
+#ifdef _SC_NPROCESSORS_ONLN
+		workers = sysconf(_SC_NPROCESSORS_ONLN);
+		if (workers <= 0) {
+			workers = 1;
+		}
+#else
+		workers = 1;
+#endif
+	}
+
+	count = zend_hash_num_elements(input);
+	if (count == 0) {
+		array_init(return_value);
+		return;
+	}
+
+	if (workers > count) {
+		workers = count;
+	}
+	if (workers > 32) {
+		workers = 32;
+	}
+
+	values = safe_emalloc(count, sizeof(zval), 0);
+	results = safe_emalloc(count, sizeof(zval), 0);
+	idx = 0;
+
+	ZEND_HASH_FOREACH_VAL(input, zval *entry) {
+		ZVAL_COPY(&values[idx++], entry);
+	} ZEND_HASH_FOREACH_END();
+
+	for (zend_long i = 0; i < count; i++) {
+		ZVAL_UNDEF(&results[i]);
+	}
+
+#if defined(ZTS) && !defined(PHP_WIN32)
+	pthread_t *threads = safe_emalloc(workers, sizeof(pthread_t), 0);
+	bloa_parallel_context ctx;
+	zend_long created = 0;
+
+	ctx.fci_cache = fci_cache;
+	ctx.values = values;
+	ctx.results = results;
+	ctx.count = count;
+	ctx.next_index = 0;
+	ctx.failed = 0;
+	pthread_mutex_init(&ctx.mutex, NULL);
+
+	for (zend_long i = 0; i < workers; i++) {
+		if (pthread_create(&threads[i], NULL, bloa_parallel_worker, &ctx) != 0) {
+			ctx.failed = 1;
+			break;
+		}
+		created++;
+	}
+
+	for (zend_long i = 0; i < created; i++) {
+		pthread_join(threads[i], NULL);
+	}
+
+	pthread_mutex_destroy(&ctx.mutex);
+	efree(threads);
+
+	if (ctx.failed) {
+		for (zend_long i = 0; i < count; i++) {
+			zval_ptr_dtor(&values[i]);
+		}
+		efree(values);
+		efree(results);
+		zend_throw_error(NULL, "parallel_map: failed to create worker thread");
+		RETURN_THROWS();
+	}
+#else
+	for (zend_long i = 0; i < count; i++) {
+		zval retval;
+		zval param;
+		zend_fcall_info worker_fci = empty_fcall_info;
+
+		ZVAL_COPY(&param, &values[i]);
+		ZVAL_UNDEF(&retval);
+
+		worker_fci.size = sizeof(zend_fcall_info);
+		worker_fci.retval = &retval;
+		worker_fci.param_count = 1;
+		worker_fci.params = &param;
+		worker_fci.named_params = NULL;
+
+		if (zend_call_function(&worker_fci, &fci_cache) == SUCCESS && Z_TYPE(retval) != IS_UNDEF) {
+			if (Z_ISREF(retval)) {
+				zend_unwrap_reference(&retval);
+			}
+			ZVAL_COPY(&results[i], &retval);
+			zval_ptr_dtor(&retval);
+		} else {
+			ZVAL_NULL(&results[i]);
+		}
+
+		if (EG(exception)) {
+			zend_clear_exception();
+		}
+
+		zval_ptr_dtor(&param);
+	}
+#endif
+
+	array_init_size(return_value, count);
+	for (zend_long i = 0; i < count; i++) {
+		zend_hash_index_add_new(Z_ARRVAL_P(return_value), i, &results[i]);
+	}
+
+	for (zend_long i = 0; i < count; i++) {
+		zval_ptr_dtor(&values[i]);
+	}
+	efree(values);
+	efree(results);
 }
 /* }}} */
 

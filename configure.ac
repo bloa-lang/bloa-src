@@ -23,7 +23,7 @@ dnl Basic autoconf initialization, generation of config.nice.
 dnl ----------------------------------------------------------------------------
 
 AC_PREREQ([2.68])
-AC_INIT([PHP],[8.6.0-dev],[https://github.com/php/php-src/issues],[php],[https://www.php.net])
+AC_INIT([BLOA LANGUAGE],[0.1.0],[https://github.com/bloa-lang/bloa-src/issues],[bloa],[https://github.com/bloa-lang/bloa-src])
 AC_CONFIG_SRCDIR([main/php_version.h])
 AC_CONFIG_MACRO_DIR([build])
 AC_CONFIG_AUX_DIR([build])
@@ -68,9 +68,9 @@ AH_BOTTOM([
 ac_IFS=$IFS; IFS="."
 set $(echo AC_PACKAGE_VERSION | "${SED}" 's/\([[0-9\.]]*\)\(.*\)/\1\.\2/')
 IFS=$ac_IFS
-PHP_MAJOR_VERSION=[$]1
-PHP_MINOR_VERSION=[$]2
-PHP_RELEASE_VERSION=[$]3
+PHP_MAJOR_VERSION=[0]
+PHP_MINOR_VERSION=[1]
+PHP_RELEASE_VERSION=[0]
 dnl Allow overriding PHP_EXTRA_VERSION through the homonymous env var
 AC_ARG_VAR([PHP_EXTRA_VERSION],
   [Extra PHP version label suffix, e.g. '-dev', 'rc1', '-acme'])dnl
@@ -844,8 +844,8 @@ AS_VAR_IF([PHP_DEBUG], [yes], [
 ], [
   PHP_DEBUG=0
   ZEND_DEBUG=no
-  CFLAGS="$CFLAGS -DNDEBUG"
-  CXXFLAGS="$CXXFLAGS -DNDEBUG"
+  CFLAGS="$CFLAGS -DNDEBUG -O2 -march=native -pipe"
+  CXXFLAGS="$CXXFLAGS -DNDEBUG -O2 -march=native -pipe"
 ])
 
 PHP_ARG_ENABLE([debug-assertions],
@@ -866,7 +866,7 @@ AC_ARG_ENABLE([zts],
   [AS_HELP_STRING([--enable-zts],
     [Enable thread safety])],
   [ZEND_ZTS=$enableval],
-  [ZEND_ZTS=no])
+  [ZEND_ZTS=yes])
 
 AS_VAR_IF([ZEND_ZTS], [yes], [PHP_THREAD_SAFETY=yes], [PHP_THREAD_SAFETY=no])
 

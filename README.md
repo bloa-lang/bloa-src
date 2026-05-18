@@ -1,52 +1,53 @@
-<div align="center">
-    <a href="https://www.php.net">
-        <img
-            alt="PHP"
-            src="https://www.php.net/images/logos/new-php-logo.svg"
-            width="150">
-    </a>
-</div>
+# BLOA LANGUAGE
 
-# The PHP Interpreter
+BLOA is a practical general-purpose scripting language that is especially
+suited to web development and general automation. Fast, flexible, and
+pragmatic, BLOA empowers both small scripts and large applications.
 
-PHP is a popular general-purpose scripting language that is especially suited to
-web development. Fast, flexible and pragmatic, PHP powers everything from your
-blog to the most popular websites in the world.
-
-PHP is distributed under the [Modified BSD License](LICENSE)
+BLOA is distributed under the [Modified BSD License](LICENSE)
 (SPDX-License-Identifier: `BSD-3-Clause`).
-
-[![Test](https://github.com/php/php-src/actions/workflows/test.yml/badge.svg)](https://github.com/php/php-src/actions/workflows/test.yml)
-[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/php.svg)](https://issues.oss-fuzz.com/issues?q=project:php)
 
 ## Documentation
 
-The PHP manual is available at [php.net/docs](https://www.php.net/docs).
+BLOA documentation is maintained in the `docs/` directory.
+
+BLOA source files support both `<?bloa` and `<?php` opening tags. The shorthand
+`<?bloa=` can also be used as an alias for `<?=`.
 
 ## Installation
 
 ### Prebuilt packages and binaries
 
-Prebuilt packages and binaries can be used to get up and running fast with PHP.
+Prebuilt packages and binaries can be used to get up and running fast with
+BLOA.
 
-For Windows, the PHP binaries can be obtained from
-[windows.php.net](https://windows.php.net). After extracting the archive the
-`*.exe` files are ready to use.
+For Windows, BLOA binaries can be obtained from the project distribution
+channels. After extracting the archive the `*.exe` files are ready to use.
 
-For other systems, see the [installation chapter](https://www.php.net/install).
+For other systems, see the installation documentation in `docs/`.
 
-### Building PHP source code
+### Building BLOA source code
 
-*For Windows, see [Build your own PHP on Windows](https://wiki.php.net/internals/windows/stepbystepbuild_sdk_2).*
+*For Windows, see the BLOA build documentation in `docs/`.*
 
-For a minimal PHP build from Git, you will need autoconf, bison, and re2c. For
+BLOA is built to support thread-safe execution by default. For high-performance
+BLOA builds, a ZTS-capable compiler toolchain is recommended. The runtime GC is
+also tuned for higher thresholds to reduce cycle collection overhead while
+keeping throughput high.
+
+BLOA now includes a built-in `parallel_map()` helper for concurrent execution
+of callback-based array transformations on ZTS builds.
+
+For a minimal BLOA build from Git, you will need autoconf, bison, and re2c. For
 a default build, you will additionally need libxml2 and libsqlite3.
 
 On Ubuntu, you can install these using:
 
 ```shell
-sudo apt install -y pkg-config build-essential autoconf bison re2c libxml2-dev libsqlite3-dev
+sudo apt install -y pkg-config build-essential autoconf bison re2c libxml2-dev libsqlite3-dev ccache
 ```
+
+If available, use `ccache` for faster repeated rebuilds.
 
 On Fedora, you can install these using:
 
@@ -82,8 +83,12 @@ Configure your build. `--enable-debug` is recommended for development, see
 ./configure
 ```
 
-Build PHP. To speed up the build, specify the maximum number of jobs using the
+Build BLOA. To speed up the build, specify the maximum number of jobs using the
 `-j` argument:
+
+By default, BLOA is configured to build with thread safety enabled. Use
+`./configure --enable-debug --enable-zts` for a debug build, or simply
+`./configure` if your environment supports ZTS by default.
 
 ```shell
 make -j4
@@ -92,9 +97,9 @@ make -j4
 The number of jobs should usually match the number of available cores, which
 can be determined using `nproc`.
 
-## Testing PHP source code
+## Testing BLOA source code
 
-PHP ships with an extensive test suite, the command `make test` is used after
+BLOA ships with an extensive test suite, the command `make test` is used after
 successful compilation of the sources to run this test suite.
 
 It is possible to run tests using multiple cores by setting `-jN` in
@@ -113,12 +118,12 @@ Use the `TEST_PHP_ARGS` or `TESTS` variable to test only specific directories:
 make TESTS=tests/lang/ test
 ```
 
-The [qa.php.net](https://qa.php.net) site provides more detailed info about
-testing and quality assurance.
+Project testing and quality assurance guidance is available in the repository
+and in the docs.
 
-## Installing PHP built from source
+## Installing BLOA built from source
 
-After a successful build (and test), PHP may be installed with:
+After a successful build (and test), BLOA may be installed with:
 
 ```shell
 make install
@@ -127,48 +132,45 @@ make install
 Depending on your permissions and prefix, `make install` may need superuser
 permissions.
 
-## PHP extensions
+## BLOA extensions
 
-Extensions provide additional functionality on top of PHP. PHP consists of many
-essential bundled extensions. Additional extensions can be found in the PHP
-Extension Community Library - [PECL](https://pecl.php.net).
+Extensions provide additional functionality on top of BLOA. BLOA consists of many
+essential bundled extensions. Additional extensions can be found in the extension
+community repositories.
 
 ## Contributing
 
-The PHP source code is located in the Git repository at
-[github.com/php/php-src](https://github.com/php/php-src). Contributions are most
-welcome by forking the repository and sending a pull request.
+The BLOA source code is located in the Git repository at
+[github.com/bloa-lang/bloa-src](https://github.com/bloa-lang/bloa-src). Contributions
+are most welcome by forking the repository and sending a pull request.
 
-Discussions are done on GitHub, but depending on the topic can also be relayed
-to the official PHP developer mailing list internals@lists.php.net.
+Discussions are done on GitHub for most topics.
 
 New features require an RFC and must be accepted by the developers. See
-[Request for comments - RFC](https://wiki.php.net/rfc) and
-[Voting on PHP features](https://wiki.php.net/rfc/voting) for more information
-on the process.
+[Request for comments - RFC](https://github.com/bloa-lang/bloa-src/issues) for
+more information on the process.
 
 Bug fixes don't require an RFC. If the bug has a GitHub issue, reference it in
-the commit message using `GH-NNNNNN`. Use `#NNNNNN` for tickets in the old
-[bugs.php.net](https://bugs.php.net) bug tracker.
+the commit message using `GH-NNNNNN`.
 
     Fix GH-7815: php_uname doesn't recognise latest Windows versions
     Fix #55371: get_magic_quotes_gpc() throws deprecation warning
 
-See [Git workflow](https://wiki.php.net/vcs/gitworkflow) for details on how pull
-requests are merged.
+See [Git workflow](https://github.com/bloa-lang/bloa-src/pulls) for details on
+how pull requests are merged.
 
 ### Guidelines for contributors
 
 See further documents in the repository for more information on how to
 contribute:
 
-- [Contributing to PHP](/CONTRIBUTING.md)
-- [PHP coding standards](/CODING_STANDARDS.md)
-- [Internal documentation](https://php.github.io/php-src/)
+- [Contributing to BLOA](/CONTRIBUTING.md)
+- [BLOA coding standards](/CODING_STANDARDS.md)
+- [Internal documentation](https://github.com/bloa-lang/bloa-src/)
 - [Mailing list rules](/docs/mailinglist-rules.md)
-- [PHP release process](/docs/release-process.md)
+- [BLOA release process](/docs/release-process.md)
 
 ## Credits
 
-For the list of people who've put work into PHP, please see the
-[PHP credits page](https://www.php.net/credits.php).
+For the list of people who've put work into BLOA, please see the project
+credits information.
