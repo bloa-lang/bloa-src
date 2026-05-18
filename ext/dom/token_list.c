@@ -557,7 +557,8 @@ PHP_METHOD(Dom_TokenList, remove)
 PHP_METHOD(Dom_TokenList, toggle)
 {
 	zend_string *token;
-	bool force, force_not_given = true;
+	bool force = false;
+	bool force_not_given = true;
 	ZEND_PARSE_PARAMETERS_START(1, 2)
 		Z_PARAM_PATH_STR(token)
 		Z_PARAM_OPTIONAL
