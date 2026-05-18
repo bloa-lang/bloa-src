@@ -100,7 +100,7 @@ static ZEND_FUNCTION(zend_test_array_return)
 	ZEND_PARSE_PARAMETERS_NONE();
 }
 
-static __attribute__((unused)) ZEND_FUNCTION(zend_test_nullable_array_return)
+static ZEND_FUNCTION(zend_test_nullable_array_return)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
@@ -123,26 +123,26 @@ static void pass2(zend_script *script, void *context)
 	php_printf("pass2\n");
 }
 
-static __attribute__((unused)) ZEND_FUNCTION(zend_test_deprecated)
+static ZEND_FUNCTION(zend_test_deprecated)
 {
 	zval *arg1;
 
 	zend_parse_parameters(ZEND_NUM_ARGS(), "|z", &arg1);
 }
 
-static __attribute__((unused)) ZEND_FUNCTION(zend_test_deprecated_attr)
+static ZEND_FUNCTION(zend_test_deprecated_attr)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 }
 
-static __attribute__((unused)) ZEND_FUNCTION(zend_test_nodiscard)
+static ZEND_FUNCTION(zend_test_nodiscard)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
 	RETURN_LONG(1);
 }
 
-static __attribute__((unused)) ZEND_FUNCTION(zend_test_deprecated_nodiscard)
+static ZEND_FUNCTION(zend_test_deprecated_nodiscard)
 {
 	ZEND_PARSE_PARAMETERS_NONE();
 
