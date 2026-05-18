@@ -1,5 +1,5 @@
 /* This is a generated file, edit basic_functions.stub.php instead.
- * Stub hash: 36b71aa7bbfe478a5e4af400b2822a77067efa2f
+ * Stub hash: cb770477f93fa7606c3670ac8587d86acc0bc89e
  * Has decl header: yes */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_set_time_limit, 0, 1, _IS_BOOL, 0)
@@ -485,7 +485,7 @@ ZEND_END_ARG_INFO()
 #define arginfo_forward_static_call_array arginfo_call_user_func_array
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_parallel_map, 0, 2, IS_ARRAY, 0)
-	ZEND_ARG_CALLABLE_INFO(0, callback, 0)
+	ZEND_ARG_TYPE_INFO(0, callback, IS_CALLABLE, 0)
 	ZEND_ARG_TYPE_INFO(0, items, IS_ARRAY, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, workers, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
@@ -2441,6 +2441,7 @@ ZEND_FUNCTION(call_user_func);
 ZEND_FUNCTION(call_user_func_array);
 ZEND_FUNCTION(forward_static_call);
 ZEND_FUNCTION(forward_static_call_array);
+ZEND_FUNCTION(parallel_map);
 ZEND_FUNCTION(register_shutdown_function);
 ZEND_FUNCTION(highlight_file);
 ZEND_FUNCTION(php_strip_whitespace);
