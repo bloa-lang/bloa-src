@@ -403,12 +403,12 @@ static const zend_function_entry ext_functions[] = {
 #if (PHP_VERSION_ID >= 80400)
 	ZEND_RAW_FENTRY("zend_test_deprecated", zif_zend_test_deprecated, arginfo_zend_test_deprecated, ZEND_ACC_DEPRECATED, NULL, NULL)
 #else
-	ZEND_RAW_FENTRY("zend_test_deprecated", zif_zend_test_deprecated, arginfo_zend_test_deprecated, ZEND_ACC_DEPRECATED)
+	ZEND_RAW_FENTRY("zend_test_deprecated", zif_zend_test_deprecated, arginfo_zend_test_deprecated, ZEND_ACC_DEPRECATED, NULL, NULL)
 #endif
 #if (PHP_VERSION_ID >= 80400)
 	ZEND_RAW_FENTRY("zend_test_deprecated_attr", zif_zend_test_deprecated_attr, arginfo_zend_test_deprecated_attr, ZEND_ACC_DEPRECATED, NULL, NULL)
 #else
-	ZEND_RAW_FENTRY("zend_test_deprecated_attr", zif_zend_test_deprecated_attr, arginfo_zend_test_deprecated_attr, ZEND_ACC_DEPRECATED)
+	ZEND_RAW_FENTRY("zend_test_deprecated_attr", zif_zend_test_deprecated_attr, arginfo_zend_test_deprecated_attr, ZEND_ACC_DEPRECATED, NULL, NULL)
 #endif
 #if (PHP_VERSION_ID >= 80400)
 #if (PHP_VERSION_ID >= 80500)
@@ -417,7 +417,7 @@ static const zend_function_entry ext_functions[] = {
 	ZEND_RAW_FENTRY("zend_test_nodiscard", zif_zend_test_nodiscard, arginfo_zend_test_nodiscard, 0, NULL, NULL)
 #endif
 #else
-	ZEND_RAW_FENTRY("zend_test_nodiscard", zif_zend_test_nodiscard, arginfo_zend_test_nodiscard, 0)
+	ZEND_RAW_FENTRY("zend_test_nodiscard", zif_zend_test_nodiscard, arginfo_zend_test_nodiscard, 0, NULL, NULL)
 #endif
 #if (PHP_VERSION_ID >= 80400)
 #if (PHP_VERSION_ID >= 80500)
@@ -426,17 +426,17 @@ static const zend_function_entry ext_functions[] = {
 	ZEND_RAW_FENTRY("zend_test_deprecated_nodiscard", zif_zend_test_deprecated_nodiscard, arginfo_zend_test_deprecated_nodiscard, ZEND_ACC_DEPRECATED, NULL, NULL)
 #endif
 #else
-	ZEND_RAW_FENTRY("zend_test_deprecated_nodiscard", zif_zend_test_deprecated_nodiscard, arginfo_zend_test_deprecated_nodiscard, ZEND_ACC_DEPRECATED)
+	ZEND_RAW_FENTRY("zend_test_deprecated_nodiscard", zif_zend_test_deprecated_nodiscard, arginfo_zend_test_deprecated_nodiscard, ZEND_ACC_DEPRECATED, NULL, NULL)
 #endif
 #if (PHP_VERSION_ID >= 80400)
 	ZEND_RAW_FENTRY("zend_test_aliased", zif_zend_test_void_return, arginfo_zend_test_aliased, 0, NULL, NULL)
 #else
-	ZEND_RAW_FENTRY("zend_test_aliased", zif_zend_test_void_return, arginfo_zend_test_aliased, 0)
+	ZEND_RAW_FENTRY("zend_test_aliased", zif_zend_test_void_return, arginfo_zend_test_aliased, 0, NULL, NULL)
 #endif
 #if (PHP_VERSION_ID >= 80400)
 	ZEND_RAW_FENTRY("zend_test_deprecated_aliased", zif_zend_test_void_return, arginfo_zend_test_deprecated_aliased, ZEND_ACC_DEPRECATED, NULL, NULL)
 #else
-	ZEND_RAW_FENTRY("zend_test_deprecated_aliased", zif_zend_test_void_return, arginfo_zend_test_deprecated_aliased, ZEND_ACC_DEPRECATED)
+	ZEND_RAW_FENTRY("zend_test_deprecated_aliased", zif_zend_test_void_return, arginfo_zend_test_deprecated_aliased, ZEND_ACC_DEPRECATED, NULL, NULL)
 #endif
 	ZEND_FE(zend_create_unterminated_string, arginfo_zend_create_unterminated_string)
 	ZEND_FE(zend_terminate_string, arginfo_zend_terminate_string)
