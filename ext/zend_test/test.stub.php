@@ -3,7 +3,6 @@
 /**
  * @generate-class-entries static
  * @generate-c-enums
- * @generate-legacy-arginfo 70000
  * @undocumentable
  */
 namespace {
