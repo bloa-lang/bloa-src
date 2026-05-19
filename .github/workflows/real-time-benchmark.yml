@@ -99,9 +99,9 @@ jobs:
 
       - name: Setup PHP
         if: matrix.runtime == 'php' || matrix.runtime == 'php-jit'
-        uses: shivammathur/setup-php@v3
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'
 
       - name: PHP Benchmark
         if: matrix.runtime == 'php'
