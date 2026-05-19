@@ -23,16 +23,89 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Generate Benchmark Files
+        shell: bash
+        run: |
+          mkdir -p results
+
+          cat > benchmark.php << 'EOF'
+          <?php
+
+          $start = microtime(true);
+
+          $sum = 0;
+
+          for ($i = 0; $i < 10000000; $i++) {
+              $sum += $i;
+          }
+
+          echo "PHP Result: $sum\n";
+          echo "Time: " . (microtime(true) - $start) . "\n";
+          EOF
+
+          cat > benchmark.go << 'EOF'
+          package main
+
+          import (
+              "fmt"
+              "time"
+          )
+
+          func main() {
+              start := time.Now()
+
+              sum := 0
+
+              for i := 0; i < 10000000; i++ {
+                  sum += i
+              }
+
+              fmt.Println("Go Result:", sum)
+              fmt.Println("Time:", time.Since(start))
+          }
+          EOF
+
+          cat > Benchmark.java << 'EOF'
+          public class Benchmark {
+              public static void main(String[] args) {
+                  long start = System.nanoTime();
+
+                  long sum = 0;
+
+                  for (int i = 0; i < 10000000; i++) {
+                      sum += i;
+                  }
+
+                  double time = (System.nanoTime() - start) / 1e9;
+
+                  System.out.println("Java Result: " + sum);
+                  System.out.println("Time: " + time);
+              }
+          }
+          EOF
+
+          cat > benchmark.bloa << 'EOF'
+          let start = now()
+
+          let sum = 0
+
+          for let i = 0; i < 10000000; i++ {
+              sum += i
+          }
+
+          println("Bloa Result: ${sum}")
+          println("Time: ${now() - start}")
+          EOF
+
       - name: Setup PHP
         if: matrix.runtime == 'php' || matrix.runtime == 'php-jit'
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@v3
         with:
-          php-version: '8.5'
+          php-version: '8.4'
 
       - name: PHP Benchmark
         if: matrix.runtime == 'php'
-        run: |
-          php benchmark.php
+        run: php benchmark.php | tee results/php.txt
 
       - name: PHP JIT Benchmark
         if: matrix.runtime == 'php-jit'
@@ -41,7 +114,7 @@ jobs:
             -dopcache.enable_cli=1 \
             -dopcache.jit_buffer_size=256M \
             -dopcache.jit=tracing \
-            benchmark.php
+            benchmark.php | tee results/php-jit.txt
 
       - name: Setup Go
         if: matrix.runtime == 'go'
@@ -52,7 +125,7 @@ jobs:
       - name: Go Benchmark
         if: matrix.runtime == 'go'
         run: |
-          go run benchmark.go
+          go run benchmark.go | tee results/go.txt
 
       - name: Setup Java
         if: matrix.runtime == 'java'
@@ -61,17 +134,13 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Java Compile
-        if: matrix.runtime == 'java'
-        run: |
-          javac Benchmark.java
-
       - name: Java Benchmark
         if: matrix.runtime == 'java'
         run: |
-          java Benchmark
+          javac Benchmark.java
+          java Benchmark | tee results/java.txt
 
-      - name: Setup Bloa Build Dependencies
+      - name: Setup Bloa Dependencies
         if: matrix.runtime == 'bloa' || matrix.runtime == 'bloa-jit'
         run: |
           sudo apt-get update
@@ -81,8 +150,7 @@ jobs:
             build-essential \
             clang \
             cmake \
-            ninja-build \
-            pkg-config
+            ninja-build
 
       - name: Clone Bloa
         if: matrix.runtime == 'bloa' || matrix.runtime == 'bloa-jit'
@@ -102,25 +170,20 @@ jobs:
       - name: Bloa Benchmark
         if: matrix.runtime == 'bloa'
         run: |
-          cd bloa-src
-
-          ./build/bloa \
+          ./bloa-src/build/bloa \
             run \
-            ../benchmark.bloa
+            benchmark.bloa | tee results/bloa.txt
 
       - name: Bloa JIT Benchmark
         if: matrix.runtime == 'bloa-jit'
         run: |
-          cd bloa-src
-
-          ./build/bloa \
+          ./bloa-src/build/bloa \
             run \
             --jit \
-            ../benchmark.bloa
+            benchmark.bloa | tee results/bloa-jit.txt
 
       - name: Upload Results
         uses: actions/upload-artifact@v6
         with:
           name: benchmark-${{ matrix.runtime }}
-          path: |
-            results/**
+          path: results/**
