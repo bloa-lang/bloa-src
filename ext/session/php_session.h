@@ -283,12 +283,12 @@ extern PHPAPI zend_class_entry *php_session_id_iface_entry;
 
 extern PHPAPI zend_class_entry *php_session_update_timestamp_iface_entry;
 
-extern PHP_METHOD(SessionHandler, open);
-extern PHP_METHOD(SessionHandler, close);
-extern PHP_METHOD(SessionHandler, read);
-extern PHP_METHOD(SessionHandler, write);
-extern PHP_METHOD(SessionHandler, destroy);
-extern PHP_METHOD(SessionHandler, gc);
-extern PHP_METHOD(SessionHandler, create_sid);
+PHP_METHOD(SessionHandler, open);
+PHP_METHOD(SessionHandler, close);
+PHP_METHOD(SessionHandler, read);
+PHP_METHOD(SessionHandler, write);
+PHP_METHOD(SessionHandler, destroy);
+PHP_METHOD(SessionHandler, gc);
+PHP_METHOD(SessionHandler, create_sid);
 
 #endif

@@ -676,8 +676,8 @@ ZEND_COLD static void zend_typed_property_uninitialized_access(const zend_proper
 		ZSTR_VAL(name));
 }
 
-static ZEND_FUNCTION(zend_parent_hook_get_trampoline);
-static ZEND_FUNCTION(zend_parent_hook_set_trampoline);
+ZEND_FUNCTION(zend_parent_hook_get_trampoline);
+ZEND_FUNCTION(zend_parent_hook_set_trampoline);
 
 static bool zend_is_in_hook(const zend_property_info *prop_info)
 {
@@ -1825,7 +1825,7 @@ ZEND_API ZEND_ATTRIBUTE_NONNULL zend_function *zend_get_call_trampoline_func(
 }
 /* }}} */
 
-static ZEND_FUNCTION(zend_parent_hook_get_trampoline)
+ZEND_FUNCTION(zend_parent_hook_get_trampoline)
 {
 	zend_object *obj = Z_PTR_P(ZEND_THIS);
 	zend_string *prop_name = EX(func)->internal_function.reserved[0];
@@ -1849,7 +1849,7 @@ clean:
 	EX(func) = NULL;
 }
 
-static ZEND_FUNCTION(zend_parent_hook_set_trampoline)
+ZEND_FUNCTION(zend_parent_hook_set_trampoline)
 {
 	zend_object *obj = Z_PTR_P(ZEND_THIS);
 	zend_string *prop_name = EX(func)->internal_function.reserved[0];

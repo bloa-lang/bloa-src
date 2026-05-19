@@ -131,7 +131,7 @@ typedef int (ZEND_FASTCALL *incdec_t)(zval *);
 
 #define RETURN_VALUE_USED(opline) ((opline)->result_type != IS_UNUSED)
 
-static ZEND_FUNCTION(pass)
+ZEND_FUNCTION(pass)
 {
 }
 

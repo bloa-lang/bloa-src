@@ -2319,7 +2319,7 @@ size_t zend_gc_globals_size(void)
 }
 #endif
 
-static ZEND_FUNCTION(gc_destructor_fiber)
+ZEND_FUNCTION(gc_destructor_fiber)
 {
 	uint32_t idx, end;
 
