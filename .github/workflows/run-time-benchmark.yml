@@ -164,7 +164,7 @@ jobs:
         run: |
           cd bloa-src
 
-          ./buildconf
+          ./buildconf --force
 
           ./configure \
             --enable-cli
