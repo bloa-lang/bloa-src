@@ -14,7 +14,7 @@ on:
       - UPGRADING
       - UPGRADING.INTERNALS
     branches:
-      - dev
+      - 'dev'
   pull_request:
     paths-ignore: *ignore_paths
     branches:
