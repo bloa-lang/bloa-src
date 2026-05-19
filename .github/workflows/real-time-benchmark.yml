@@ -20,10 +20,9 @@ jobs:
           - bloa-jit
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: Generate Benchmark Files
+      - name: Generate Benchmarks
         shell: bash
         run: |
           mkdir -p results
@@ -39,7 +38,7 @@ jobs:
               $sum += $i;
           }
 
-          echo "PHP Result: $sum\n";
+          echo "Result: $sum\n";
           echo "Time: " . (microtime(true) - $start) . "\n";
           EOF
 
@@ -60,7 +59,7 @@ jobs:
                   sum += i
               }
 
-              fmt.Println("Go Result:", sum)
+              fmt.Println("Result:", sum)
               fmt.Println("Time:", time.Since(start))
           }
           EOF
@@ -78,34 +77,37 @@ jobs:
 
                   double time = (System.nanoTime() - start) / 1e9;
 
-                  System.out.println("Java Result: " + sum);
+                  System.out.println("Result: " + sum);
                   System.out.println("Time: " + time);
               }
           }
           EOF
 
           cat > benchmark.bloa << 'EOF'
-          let start = now()
+          <?php
 
-          let sum = 0
+          $start = microtime(true);
 
-          for let i = 0; i < 10000000; i++ {
-              sum += i
+          $sum = 0;
+
+          for ($i = 0; $i < 10000000; $i++) {
+              $sum += $i;
           }
 
-          println("Bloa Result: ${sum}")
-          println("Time: ${now() - start}")
+          echo "Result: $sum\n";
+          echo "Time: " . (microtime(true) - $start) . "\n";
           EOF
 
       - name: Setup PHP
-        if: matrix.runtime == 'php' || matrix.runtime == 'php-jit'
+        if: contains(matrix.runtime, 'php')
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
 
       - name: PHP Benchmark
         if: matrix.runtime == 'php'
-        run: php benchmark.php | tee results/php.txt
+        run: |
+          php benchmark.php | tee results/php.txt
 
       - name: PHP JIT Benchmark
         if: matrix.runtime == 'php-jit'
@@ -141,44 +143,44 @@ jobs:
           java Benchmark | tee results/java.txt
 
       - name: Setup Bloa Dependencies
-        if: matrix.runtime == 'bloa' || matrix.runtime == 'bloa-jit'
+        if: contains(matrix.runtime, 'bloa')
         run: |
           sudo apt-get update
 
           sudo apt-get install -y \
             git \
-            build-essential \
-            clang \
-            cmake \
-            ninja-build
+            autoconf \
+            bison \
+            re2c \
+            build-essential
 
       - name: Clone Bloa
-        if: matrix.runtime == 'bloa' || matrix.runtime == 'bloa-jit'
+        if: contains(matrix.runtime, 'bloa')
         run: |
           git clone https://github.com/bloa-lang/bloa-src.git
 
       - name: Build Bloa
-        if: matrix.runtime == 'bloa' || matrix.runtime == 'bloa-jit'
+        if: contains(matrix.runtime, 'bloa')
         run: |
           cd bloa-src
 
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+          ./buildconf
 
-          cmake --build build -j$(nproc)
+          ./configure \
+            --enable-cli
+
+          make -j$(nproc)
 
       - name: Bloa Benchmark
         if: matrix.runtime == 'bloa'
         run: |
-          ./bloa-src/build/bloa \
-            run \
+          ./bloa-src/sapi/cli/bloa \
             benchmark.bloa | tee results/bloa.txt
 
       - name: Bloa JIT Benchmark
         if: matrix.runtime == 'bloa-jit'
         run: |
-          ./bloa-src/build/bloa \
-            run \
+          ./bloa-src/sapi/cli/bloa \
             --jit \
             benchmark.bloa | tee results/bloa-jit.txt
 
