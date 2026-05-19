@@ -542,6 +542,21 @@ PHP_CHECK_VARIABLE_ATTRIBUTE([aligned])
 dnl Checks for library functions.
 dnl ----------------------------------------------------------------------------
 
+save_CFLAGS="$CFLAGS"
+case "$CC" in
+  *clang*)
+    AX_CHECK_COMPILE_FLAG([-Wno-incompatible-library-redeclaration], [
+      CFLAGS="$CFLAGS -Wno-incompatible-library-redeclaration"
+    ])
+    AX_CHECK_COMPILE_FLAG([-Wno-builtin-declaration-mismatch], [
+      CFLAGS="$CFLAGS -Wno-builtin-declaration-mismatch"
+    ])
+    AX_CHECK_COMPILE_FLAG([-Wno-deprecated-declarations], [
+      CFLAGS="$CFLAGS -Wno-deprecated-declarations"
+    ])
+    ;;
+esac
+
 AC_CHECK_FUNCS(m4_normalize([
   alphasort
   asctime_r
@@ -604,6 +619,7 @@ AC_CHECK_FUNCS(m4_normalize([
   utime
   vasprintf
 ]))
+CFLAGS="$save_CFLAGS"
 
 PHP_ARG_ENABLE([system-glob],
   [whether to use the system glob function],
