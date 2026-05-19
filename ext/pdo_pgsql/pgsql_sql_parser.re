@@ -46,5 +46,6 @@ int pdo_pgsql_scanner(pdo_scanner_t *s)
 		SPECIALS								{ SKIP_ONE(PDO_PARSER_TEXT); }
 		COMMENTS								{ RET(PDO_PARSER_TEXT); }
 		(ANYNOEOF\SPECIALS)+ 					{ RET(PDO_PARSER_TEXT); }
+		* { RET(PDO_PARSER_EOI); }
 	*/
 }

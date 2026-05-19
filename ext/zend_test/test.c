@@ -1642,10 +1642,12 @@ PHP_MINIT_FUNCTION(zend_test)
 	zend_test_ns2_foo_class = register_class_ZendTestNS2_Foo();
 	zend_test_ns2_ns_foo_class = register_class_ZendTestNS2_ZendSubNS_Foo();
 
+#if (PHP_VERSION_ID >= 80100)
 	zend_test_unit_enum = register_class_ZendTestUnitEnum();
 	zend_test_string_enum = register_class_ZendTestStringEnum();
 	zend_test_int_enum = register_class_ZendTestIntEnum();
 	zend_test_enum_with_interface = register_class_ZendTestEnumWithInterface(zend_test_interface);
+#endif
 
 	zend_test_magic_call = register_class__ZendTestMagicCall();
 

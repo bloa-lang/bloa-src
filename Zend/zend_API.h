@@ -71,9 +71,9 @@ typedef struct _zend_fcall_info_cache {
 #define ZEND_FN(name) zif_##name
 #define ZEND_MN(name) zim_##name
 
-#define ZEND_NAMED_FUNCTION(name)		void ZEND_FASTCALL name(INTERNAL_FUNCTION_PARAMETERS)
-#define ZEND_FUNCTION(name)				ZEND_NAMED_FUNCTION(zif_##name)
-#define ZEND_METHOD(classname, name)	ZEND_NAMED_FUNCTION(zim_##classname##_##name)
+#define ZEND_NAMED_FUNCTION(name)        void ZEND_FASTCALL name(INTERNAL_FUNCTION_PARAMETERS)
+#define ZEND_FUNCTION(name)             static ZEND_ATTRIBUTE_UNUSED ZEND_NAMED_FUNCTION(zif_##name)
+#define ZEND_METHOD(classname, name)    static ZEND_ATTRIBUTE_UNUSED ZEND_NAMED_FUNCTION(zim_##classname##_##name)
 
 #define ZEND_FENTRY_FLAGS(flags, flags2) (((uint64_t)flags) | ((uint64_t)flags2 << 32))
 
