@@ -210,7 +210,7 @@ static inline bool is_cacheable_stream_path(const char *filename)
  * in ZCG(cwd) and ZCG(cwd_len). Later accel_getcwd() can use stored value and
  * avoid getcwd() call.
  */
-static ZEND_FUNCTION(accel_chdir)
+ZEND_FUNCTION(accel_chdir)
 {
 	char cwd[MAXPATHLEN];
 
