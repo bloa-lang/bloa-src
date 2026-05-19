@@ -14,11 +14,7 @@ on:
       - UPGRADING
       - UPGRADING.INTERNALS
     branches:
-      - PHP-8.2
-      - PHP-8.3
-      - PHP-8.4
-      - PHP-8.5
-      - master
+      - dev
   pull_request:
     paths-ignore: *ignore_paths
     branches:
