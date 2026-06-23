@@ -19,7 +19,7 @@ jobs:
           - bloa
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Generate Benchmarks
         shell: bash
