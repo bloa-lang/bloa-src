@@ -44,7 +44,7 @@ jobs:
           fetch-depth: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '0' || '1' }}
       - name: Grab the commit mapping
         if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: branch-commit-cache.json
           # The cache key needs to change every time for the
