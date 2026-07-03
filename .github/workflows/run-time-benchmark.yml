@@ -332,7 +332,11 @@ jobs:
             autoconf \
             bison \
             re2c \
-            build-essential
+            build-essential \
+            libc6-dev \
+            gettext \
+            libgmp-dev \
+            libmhash-dev
 
       - name: Clone Bloa
         if: matrix.runtime == 'bloa'
