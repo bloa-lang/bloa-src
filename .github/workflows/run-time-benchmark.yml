@@ -349,7 +349,7 @@ jobs:
           cd bloa-src
 
           ./buildconf --force
-          ./configure --enable-cli
+          ./configure --enable-cli LIBS="-liconv" CFLAGS="-I/usr/include" LDFLAGS="-L/usr/lib"
 
           make -j$(nproc)
 
