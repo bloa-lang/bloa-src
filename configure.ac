@@ -861,8 +861,8 @@ AS_VAR_IF([PHP_DEBUG], [yes], [
   PHP_DEBUG=0
   ZEND_DEBUG=no
   dnl Aggressive optimization for BLOA production builds with LTO and SIMD
-  CFLAGS="$CFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -fvectorize -fslp-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
-  CXXFLAGS="$CXXFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -fvectorize -fslp-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
+  CFLAGS="$CFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -ftree-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
+  CXXFLAGS="$CXXFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -ftree-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
 ])
 
 PHP_ARG_ENABLE([debug-assertions],
