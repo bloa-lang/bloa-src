@@ -336,7 +336,8 @@ jobs:
             libc6-dev \
             gettext \
             libgmp-dev \
-            libmhash-dev
+            libmhash-dev \
+            pkg-config
 
       - name: Build Bloa
         if: matrix.runtime == 'bloa'
@@ -349,7 +350,7 @@ jobs:
       - name: Show config.log
         if: failure() && matrix.runtime == 'bloa'
         run: |
-          cat bloa-src/config.log
+          cat config.log
 
       - name: Run PHP
         if: matrix.runtime == 'php'
