@@ -36,7 +36,8 @@ also tuned for higher thresholds to reduce cycle collection overhead while
 keeping throughput high.
 
 BLOA now includes a built-in `parallel_map()` helper for concurrent execution
-of callback-based array transformations on ZTS builds.
+of callback-based array transformations on ZTS builds. Its worker scheduler uses
+lock-free atomic indexing to reduce thread contention and improve throughput.
 
 For a minimal BLOA build from Git, you will need autoconf, bison, and re2c. For
 a default build, you will additionally need libxml2 and libsqlite3.

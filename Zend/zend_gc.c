@@ -181,18 +181,20 @@
 #define GC_INVALID           0
 #define GC_FIRST_ROOT        1
 
-#define GC_DEFAULT_BUF_SIZE  (16 * 1024)
-#define GC_BUF_GROW_STEP     (128 * 1024)
+#define GC_DEFAULT_BUF_SIZE  (32 * 1024)
+#define GC_BUF_GROW_STEP     (256 * 1024)
 
 #define GC_MAX_UNCOMPRESSED  (512 * 1024)
 #define GC_MAX_BUF_SIZE      0x40000000
 
 /* Higher GC thresholds reduce cycle collection frequency for faster runtime
- * at the cost of slightly higher memory usage. BLOA is tuned for throughput. */
-#define GC_THRESHOLD_DEFAULT (20000 + GC_FIRST_ROOT)
-#define GC_THRESHOLD_STEP    20000
+ * at the cost of slightly higher memory usage. BLOA is tuned for throughput.
+ * Default threshold is set higher to favor application throughput under
+ * heavy allocation workloads. */
+#define GC_THRESHOLD_DEFAULT (300000 + GC_FIRST_ROOT)
+#define GC_THRESHOLD_STEP    100000
 #define GC_THRESHOLD_MAX     1000000000
-#define GC_THRESHOLD_TRIGGER 150
+#define GC_THRESHOLD_TRIGGER 250
 
 /* GC flags */
 #define GC_HAS_DESTRUCTORS  (1<<0)

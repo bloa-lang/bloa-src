@@ -860,8 +860,9 @@ AS_VAR_IF([PHP_DEBUG], [yes], [
 ], [
   PHP_DEBUG=0
   ZEND_DEBUG=no
-  CFLAGS="$CFLAGS -DNDEBUG -O2 -march=native -pipe"
-  CXXFLAGS="$CXXFLAGS -DNDEBUG -O2 -march=native -pipe"
+  dnl Aggressive optimization for BLOA production builds with LTO and SIMD
+  CFLAGS="$CFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -fvectorize -fslp-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
+  CXXFLAGS="$CXXFLAGS -DNDEBUG -O3 -march=native -pipe -finline-limit=1024 -fvectorize -fslp-vectorize -flto=auto -fuse-linker-plugin -funroll-loops -ffast-math"
 ])
 
 PHP_ARG_ENABLE([debug-assertions],

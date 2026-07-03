@@ -48,6 +48,7 @@
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 
 #include "zend.h"
+#include "Zend/zend_atomic.h"
 #include "zend_ini_scanner.h"
 #include "zend_language_scanner.h"
 #include <zend_language_parser.h>
@@ -124,8 +125,7 @@ typedef struct _bloa_parallel_context {
 	zval *values;
 	zval *results;
 	zend_long count;
-	zend_long next_index;
-	pthread_mutex_t mutex;
+	zend_atomic_int next_index;
 	zend_bool failed;
 } bloa_parallel_context;
 
@@ -137,17 +137,17 @@ static void *bloa_parallel_worker(void *arg)
 	TSRMLS_CACHE_UPDATE();
 
 	while (1) {
-		if (pthread_mutex_lock(&ctx->mutex) != 0) {
+		int expected = zend_atomic_int_load_ex(&ctx->next_index);
+		if (expected >= ctx->count) {
 			break;
 		}
 
-		if (ctx->next_index >= ctx->count) {
-			pthread_mutex_unlock(&ctx->mutex);
-			break;
+		int desired = expected + 1;
+		if (!zend_atomic_int_compare_exchange_ex(&ctx->next_index, &expected, desired)) {
+			continue;
 		}
 
-		index = ctx->next_index++;
-		pthread_mutex_unlock(&ctx->mutex);
+		index = expected;
 
 		zval retval;
 		zval param;
@@ -1639,9 +1639,8 @@ PHP_FUNCTION(parallel_map)
 	ctx.values = values;
 	ctx.results = results;
 	ctx.count = count;
-	ctx.next_index = 0;
+	ZEND_ATOMIC_INT_INIT(&ctx.next_index, 0);
 	ctx.failed = 0;
-	pthread_mutex_init(&ctx.mutex, NULL);
 
 	for (zend_long i = 0; i < workers; i++) {
 		if (pthread_create(&threads[i], NULL, bloa_parallel_worker, &ctx) != 0) {
@@ -1655,7 +1654,6 @@ PHP_FUNCTION(parallel_map)
 		pthread_join(threads[i], NULL);
 	}
 
-	pthread_mutex_destroy(&ctx.mutex);
 	efree(threads);
 
 	if (ctx.failed) {

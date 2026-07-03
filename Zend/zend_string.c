@@ -77,7 +77,8 @@ ZEND_KNOWN_STRINGS(_ZEND_STR_DSC)
 
 static zend_always_inline void zend_init_interned_strings_ht(HashTable *interned_strings, bool permanent)
 {
-	zend_hash_init(interned_strings, 1024, NULL, _str_dtor, permanent);
+	/* Increased from 1024 to 8192 for better production workload cache locality */
+	zend_hash_init(interned_strings, 8192, NULL, _str_dtor, permanent);
 	if (permanent) {
 		zend_hash_real_init_mixed(interned_strings);
 	}
