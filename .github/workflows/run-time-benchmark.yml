@@ -6,7 +6,7 @@ on:
 
 jobs:
   benchmark:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
@@ -326,7 +326,6 @@ jobs:
         if: matrix.runtime == 'bloa'
         run: |
           sudo apt-get update \
-          sudo apt-get upgrade \
 
           sudo apt-get install -y \
             git \
