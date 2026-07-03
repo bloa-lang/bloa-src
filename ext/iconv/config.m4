@@ -6,12 +6,16 @@ PHP_ARG_WITH([iconv],
 
 if test "$PHP_ICONV" != "no"; then
   PHP_SETUP_ICONV([ICONV_SHARED_LIBADD],,
-    [AC_MSG_FAILURE([The iconv not found.])])
+    [PHP_ICONV=no
+     AC_MSG_WARN([iconv support has been disabled because the iconv library was not found.])])
 
-  save_LIBS=$LIBS
-  save_CFLAGS=$CFLAGS
-  LIBS="$LIBS $ICONV_SHARED_LIBADD"
-  CFLAGS="$INCLUDES $CFLAGS"
+  if test "$PHP_ICONV" = "no"; then
+    AC_MSG_NOTICE([Skipping iconv extension build.])
+  else
+    save_LIBS=$LIBS
+    save_CFLAGS=$CFLAGS
+    LIBS="$LIBS $ICONV_SHARED_LIBADD"
+    CFLAGS="$INCLUDES $CFLAGS"
 
   AC_CACHE_CHECK([for iconv implementation], [php_cv_iconv_implementation], [
     AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <gnu/libc-version.h>],
@@ -125,16 +129,17 @@ int main(void) {
     [AC_DEFINE([ICONV_BROKEN_IGNORE], [1],
       [Define to 1 if iconv has broken IGNORE.])])
 
-  LIBS=$save_LIBS
-  CFLAGS=$save_CFLAGS
+    LIBS=$save_LIBS
+    CFLAGS=$save_CFLAGS
 
-  AC_DEFINE([HAVE_ICONV], [1],
-    [Define to 1 if the PHP extension 'iconv' is available.])
+    AC_DEFINE([HAVE_ICONV], [1],
+      [Define to 1 if the PHP extension 'iconv' is available.])
 
-  PHP_NEW_EXTENSION([iconv],
-    [iconv.c],
-    [$ext_shared],,
-    [-DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -DICONV_CONST=$php_cv_iconv_const])
-  PHP_SUBST([ICONV_SHARED_LIBADD])
-  PHP_INSTALL_HEADERS([ext/iconv], [php_iconv.h])
+    PHP_NEW_EXTENSION([iconv],
+      [iconv.c],
+      [$ext_shared],,
+      [-DZEND_ENABLE_STATIC_TSRMLS_CACHE=1 -DICONV_CONST=$php_cv_iconv_const])
+    PHP_SUBST([ICONV_SHARED_LIBADD])
+    PHP_INSTALL_HEADERS([ext/iconv], [php_iconv.h])
+  fi
 fi
