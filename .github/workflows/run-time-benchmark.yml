@@ -325,7 +325,8 @@ jobs:
       - name: Setup Bloa Dependencies
         if: matrix.runtime == 'bloa'
         run: |
-          sudo apt-get update
+          sudo apt-get update \
+          sudo apt-get upgrade \
 
           sudo apt-get install -y \
             git \
@@ -338,20 +339,18 @@ jobs:
             libgmp-dev \
             libmhash-dev
 
-      - name: Clone Bloa
-        if: matrix.runtime == 'bloa'
-        run: |
-          git clone https://github.com/bloa-lang/bloa-src.git
-
       - name: Build Bloa
         if: matrix.runtime == 'bloa'
         run: |
-          cd bloa-src
-
           ./buildconf --force
-          ./configure --enable-cli LIBS="-liconv" CFLAGS="-I/usr/include" LDFLAGS="-L/usr/lib"
+          ./configure --enable-cli
 
           make -j$(nproc)
+
+      - name: Show config.log
+        if: failure() && matrix.runtime == 'bloa'
+        run: |
+          cat bloa-src/config.log
 
       - name: Run PHP
         if: matrix.runtime == 'php'
@@ -411,7 +410,7 @@ jobs:
                 | tee -a results/bloa.txt
 
               for i in {1..5}; do
-                  ./bloa-src/sapi/cli/bloa "$file" \
+                  ./sapi/cli/bloa "$file" \
                     | tee -a results/bloa.txt
               done
 
