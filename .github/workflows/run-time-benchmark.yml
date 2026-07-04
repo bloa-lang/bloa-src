@@ -342,10 +342,12 @@ jobs:
       - name: Build Bloa
         if: matrix.runtime == 'bloa'
         run: |
-          ./buildconf --force
-          ./configure --enable-cli
+          set -euxo pipefail
 
-          make -j$(nproc)
+          ./buildconf --force
+          ./configure --enable-cli 2>&1 | tee configure.log
+
+          make -j$(nproc) 2>&1 | tee build.log || (echo "--- Build failed, tail of build.log: ---" && tail -n 200 build.log && exit 1)
 
       - name: Show config.log
         if: failure() && matrix.runtime == 'bloa'
