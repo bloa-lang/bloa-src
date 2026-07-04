@@ -376,9 +376,20 @@ jobs:
           export ac_cv_func_gethostbyname_r=no
           export ac_cv_func_issetugid=no
           export ac_cv_func_memcntl=no
-          export ac_cv_func_memset_explicit=no
+          # Correct autoconf variable name for explicit_memset
+          export ac_cv_func_explicit_memset=no
+          # funopen is BSD-only; preseed as not present on Linux
+          export ac_cv_func_funopen=no
           export ac_cv_func_pthread_jit_write_protect_np=no
           export ac_cv_func_std_syslog=no
+
+          # Preseed problematic type/header detections that caused "expected expression before ')' token"
+          # This skips the conftest compilations that fail on the Ubuntu runner
+          export ac_cv_type_socklen_t=yes
+          export ac_cv_type_struct_flock=yes
+          export ac_cv_type_struct_sockaddr_storage=yes
+          export ac_cv_type_size_t=yes
+          export ac_cv_header_sys_procctl_h=no
 
           # Use env so autotools see the sanitized toolchain flags
           env CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" ./buildconf --force
