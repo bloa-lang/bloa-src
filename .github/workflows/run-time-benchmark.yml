@@ -362,12 +362,23 @@ jobs:
           # and ensure pthread is available to configure/link tests.
           export CC=gcc
           export CXX=g++
-          export CFLAGS="-g -O2 -pipe -D_GNU_SOURCE -fno-lto -march=x86-64 -pthread"
+          # Use mtune=generic instead of -march=x86-64 to avoid platform-specific instructions
+          export CFLAGS="-g -O2 -pipe -D_GNU_SOURCE -fno-lto -mtune=generic -pthread"
           export CXXFLAGS="$CFLAGS"
           export CPPFLAGS=""
           export LDFLAGS="-pthread"
           # Hint to configure/autotools to avoid enabling LTO if it autodetects support
           export ac_cv_prog_gcc_have_lto=no
+
+          # Preseed configure cache for functions that mis-detect on Ubuntu runners
+          # These avoid running conftest programs that use non-portable prototypes
+          export ac_cv_func_asctime_r=yes
+          export ac_cv_func_gethostbyname_r=no
+          export ac_cv_func_issetugid=no
+          export ac_cv_func_memcntl=no
+          export ac_cv_func_memset_explicit=no
+          export ac_cv_func_pthread_jit_write_protect_np=no
+          export ac_cv_func_std_syslog=no
 
           # Use env so autotools see the sanitized toolchain flags
           env CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" ./buildconf --force
