@@ -358,18 +358,23 @@ jobs:
         run: |
           set -euxo pipefail
 
-          # Sanitize compiler and linker flags for CI to avoid -march=native / LTO issues
-          export CFLAGS="-g -O2 -pipe"
+          # Sanitize compiler and linker flags for CI to avoid -march=native / LTO issues,
+          # and ensure pthread is available to configure/link tests.
+          export CC=gcc
+          export CXX=g++
+          export CFLAGS="-g -O2 -pipe -D_GNU_SOURCE -fno-lto -march=x86-64 -pthread"
           export CXXFLAGS="$CFLAGS"
           export CPPFLAGS=""
-          export LDFLAGS=""
-          # Hint to configure to avoid enabling LTO if it autodetects support
+          export LDFLAGS="-pthread"
+          # Hint to configure/autotools to avoid enabling LTO if it autodetects support
           export ac_cv_prog_gcc_have_lto=no
 
-          ./buildconf --force
-          ./configure --enable-cli CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" 2>&1 | tee configure.log
+          # Use env so autotools see the sanitized toolchain flags
+          env CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" ./buildconf --force
+          env CC="$CC" CXX="$CXX" CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" LDFLAGS="$LDFLAGS" ./configure --enable-cli CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" 2>&1 | tee configure.log
 
           # Build with verbose output; on failure print a large tail of the build log
+          # If debugging is needed, remove -j$(nproc) to run single-threaded and see the first error.
           make -j$(nproc) V=1 2>&1 | tee build.log || (echo "--- Build failed, tail of build.log: ---" && tail -n 500 build.log && exit 1)
 
       - name: Show config.log
@@ -390,7 +395,7 @@ jobs:
         if: matrix.runtime == 'php'
         run: |
           for file in benchmarks/*.php; do
-              echo "=== $(basename "$file") ===" \
+              echo "=== $(basename \"$file\") ===" \
                 | tee -a results/php.txt
 
               for i in {1..5}; do
@@ -406,7 +411,7 @@ jobs:
         if: matrix.runtime == 'php-jit'
         run: |
           for file in benchmarks/*.php; do
-              echo "=== $(basename "$file") ===" \
+              echo "=== $(basename \"$file\") ===" \
                 | tee -a results/php-jit.txt
 
               for i in {1..5}; do
@@ -440,7 +445,7 @@ jobs:
         if: matrix.runtime == 'bloa'
         run: |
           for file in benchmarks/*.php; do
-              echo "=== $(basename "$file") ===" \
+              echo "=== $(basename \"$file\") ===" \
                 | tee -a results/bloa.txt
 
               for i in {1..5}; do
