@@ -325,11 +325,14 @@ jobs:
       - name: Setup Bloa Dependencies
         if: matrix.runtime == 'bloa'
         run: |
-          sudo apt-get update \
-
+          sudo apt-get update
           sudo apt-get install -y \
             git \
             autoconf \
+            automake \
+            libtool \
+            libtool-bin \
+            m4 \
             bison \
             re2c \
             build-essential \
@@ -337,7 +340,18 @@ jobs:
             gettext \
             libgmp-dev \
             libmhash-dev \
-            pkg-config
+            pkg-config \
+            zlib1g-dev \
+            libssl-dev \
+            libcurl4-openssl-dev \
+            libxml2-dev \
+            libreadline-dev \
+            libedit-dev \
+            libsqlite3-dev \
+            libzip-dev \
+            libonig-dev \
+            libbz2-dev \
+            libxslt1-dev
 
       - name: Build Bloa
         if: matrix.runtime == 'bloa'
