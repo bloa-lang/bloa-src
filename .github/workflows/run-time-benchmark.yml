@@ -358,15 +358,33 @@ jobs:
         run: |
           set -euxo pipefail
 
-          ./buildconf --force
-          ./configure --enable-cli 2>&1 | tee configure.log
+          # Sanitize compiler and linker flags for CI to avoid -march=native / LTO issues
+          export CFLAGS="-g -O2 -pipe"
+          export CXXFLAGS="$CFLAGS"
+          export CPPFLAGS=""
+          export LDFLAGS=""
+          # Hint to configure to avoid enabling LTO if it autodetects support
+          export ac_cv_prog_gcc_have_lto=no
 
-          make -j$(nproc) 2>&1 | tee build.log || (echo "--- Build failed, tail of build.log: ---" && tail -n 200 build.log && exit 1)
+          ./buildconf --force
+          ./configure --enable-cli CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" 2>&1 | tee configure.log
+
+          # Build with verbose output; on failure print a large tail of the build log
+          make -j$(nproc) V=1 2>&1 | tee build.log || (echo "--- Build failed, tail of build.log: ---" && tail -n 500 build.log && exit 1)
 
       - name: Show config.log
         if: failure() && matrix.runtime == 'bloa'
         run: |
-          cat config.log
+          cat config.log || true
+
+      - name: Upload build logs on failure
+        if: failure() && matrix.runtime == 'bloa'
+        uses: actions/upload-artifact@v6
+        with:
+          name: bloa-build-logs
+          path: |
+            configure.log
+            build.log
 
       - name: Run PHP
         if: matrix.runtime == 'php'
