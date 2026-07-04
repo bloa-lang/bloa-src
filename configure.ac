@@ -178,9 +178,9 @@ PHP_ARG_ENABLE([re2c-cgoto],
   [no],
   [no])
 
-AS_VAR_IF([PHP_RE2C_CGOTO], [no],,
-[AC_CACHE_CHECK([whether re2c -g works], [php_cv_have_re2c_cgoto],
-  [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+AS_VAR_IF([PHP_RE2C_CGOTO], [no],, [
+  AC_CACHE_CHECK([whether re2c -g works], [php_cv_have_re2c_cgoto],
+    [AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 int main(void)
 {
 label1:
@@ -191,10 +191,10 @@ label2:
   goto *adr[0];
   return 0;
 }]])],
-  [php_cv_have_re2c_cgoto=yes],
-  [php_cv_have_re2c_cgoto=no])])
-AS_VAR_IF([php_cv_have_re2c_cgoto], [yes],
-  [AS_VAR_APPEND([RE2C_FLAGS], [" -g"])])
+    [php_cv_have_re2c_cgoto=yes],
+    [php_cv_have_re2c_cgoto=no])])
+  AS_VAR_IF([php_cv_have_re2c_cgoto], [yes],
+    [AS_VAR_APPEND([RE2C_FLAGS], [" -g"])])
 ])
 
 dnl Platform-specific compile settings.
@@ -738,7 +738,7 @@ AC_CACHE_CHECK([for aarch64 CRC32 API], [php_cv_func___crc32d],
 [AC_LINK_IFELSE([AC_LANG_PROGRAM([
 #include <arm_acle.h>
 # if defined(__GNUC__)
-#  if!defined(__clang__)
+#  if !defined(__clang__)
 #   pragma GCC push_options
 #   pragma GCC target ("+nothing+crc")
 #  elif defined(__APPLE__)
@@ -998,5 +998,3 @@ AS_VAR_IF([PHP_DMALLOC], [yes],
       AC_DEFINE([HAVE_DMALLOC], [1], [Define to 1 if you have dmalloc.])
       AS_VAR_APPEND([CPPFLAGS], [" -DDMALLOC_FUNC_CHECK"])],
     [AC_MSG_FAILURE([The dmalloc check failed. Cannot enable dmalloc.])])])
-
-PHP_ARG_ENABLE([ipv6],
