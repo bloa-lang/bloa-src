@@ -1,0 +1,7 @@
+ARG_ENABLE('bloa_utils', 'bloa_utils support', 'no');
+
+if (PHP_BLOA_UTILS != 'no') {
+	AC_DEFINE('HAVE_BLOA_UTILS', 1, "Define to 1 if the PHP extension 'bloa_utils' is available.");
+
+	EXTENSION('bloa_utils', 'bloa_utils.c', null, '/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1');
+}

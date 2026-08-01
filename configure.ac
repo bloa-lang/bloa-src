@@ -998,3 +998,4 @@ AS_VAR_IF([PHP_DMALLOC], [yes],
       AC_DEFINE([HAVE_DMALLOC], [1], [Define to 1 if you have dmalloc.])
       AS_VAR_APPEND([CPPFLAGS], [" -DDMALLOC_FUNC_CHECK"])],
     [AC_MSG_FAILURE([The dmalloc check failed. Cannot enable dmalloc.])])])
+AC_OUTPUT
