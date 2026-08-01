@@ -466,6 +466,7 @@ jobs:
       - name: Run Bloa
         if: matrix.runtime == 'bloa'
         run: |
+          mv ./sapi/cli/bloa.1 ./sapi/cli/bloa
           for file in benchmarks/*.php; do
               echo "=== $(basename \"$file\") ===" \
                 | tee -a results/bloa.txt
